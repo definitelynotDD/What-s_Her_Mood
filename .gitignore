@@ -1,0 +1,12 @@
+# Per-deployment config with real Supabase/Gemini keys — never commit.
+# Copy config.example.js to config.js locally in each build folder.
+**/config.js
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Dependency dirs (defensive — the project has no build step today)
+node_modules/

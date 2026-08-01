@@ -1,0 +1,7 @@
+# Real secrets / per-deployment config — never commit
+config.js
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.vscode/

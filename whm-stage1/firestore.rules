@@ -1,0 +1,4 @@
+// DEPRECATED — WHM moved from Firebase/Firestore to Supabase/Postgres.
+// The equivalent security model now lives in Row-Level Security policies and
+// SECURITY DEFINER functions in supabase/schema.sql (already applied to the
+// project). This file is kept only as a breadcrumb and is no longer used.

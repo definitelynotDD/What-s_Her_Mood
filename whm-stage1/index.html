@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#4F6E4A" />
+  <title>What's Her Mood</title>
+  <link rel="stylesheet" href="css/shared.css" />
+  <link rel="stylesheet" href="css/auth.css" />
+  <link rel="stylesheet" href="css/hangout.css" />
+  <link rel="icon" href="icons/favicon-32.png" sizes="32x32" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+</head>
+<body>
+  <main class="wrap">
+
+    <!-- ── SETUP ERROR (only shows if config.js is missing/placeholder) ── -->
+    <section id="screen-setup" class="screen setup-error" hidden>
+      <div class="card">
+        <h1 class="logo-big serif">Setup not complete</h1>
+        <p class="muted">
+          Copy <code>config.example.js</code> to <code>config.js</code> and paste in
+          your Supabase project's URL + anon key, then reload. See <code>DEPLOY.md</code>
+          for the walk-through.
+        </p>
+      </div>
+    </section>
+
+    <!-- ── LOADING (default; main.js replaces it once auth resolves) ── -->
+    <section id="screen-loading" class="screen center">
+      <div class="loader">
+        <span class="logo-big serif">WHM</span>
+        <p class="muted hand">warming up…</p>
+      </div>
+    </section>
+
+    <!-- ── WELCOME ── -->
+    <section id="screen-welcome" class="screen center" hidden>
+      <div class="card">
+        <h1 class="logo-big serif">What's Her Mood</h1>
+        <p class="logo-sub hand">a cozy little field manual, now for two</p>
+        <p class="muted">
+          A private space for the two of you. She tracks her cycle and to-dos;
+          he gets a gentle read on the day. First, make your account.
+        </p>
+        <div class="stack">
+          <button id="go-signup" class="btn-primary">create an account</button>
+          <button id="go-signin" class="btn-ghost">I already have one</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SIGN UP ── -->
+    <section id="screen-signup" class="screen center" hidden>
+      <form id="signup-form" class="card" novalidate>
+        <h1 class="logo-big serif">Make your account</h1>
+
+        <fieldset class="role-pick">
+          <legend class="muted">who are you?</legend>
+          <label class="role-opt">
+            <input type="radio" name="role" value="her" />
+            <span>her</span>
+          </label>
+          <label class="role-opt">
+            <input type="radio" name="role" value="partner" />
+            <span>her partner</span>
+          </label>
+        </fieldset>
+
+        <label class="field">
+          <span>your name</span>
+          <input id="signup-name" type="text" autocomplete="name" placeholder="what she calls you" required />
+        </label>
+        <label class="field">
+          <span>email</span>
+          <input id="signup-email" type="email" autocomplete="email" placeholder="you@example.com" required />
+        </label>
+        <label class="field">
+          <span>password</span>
+          <input id="signup-password" type="password" autocomplete="new-password" placeholder="6+ characters" minlength="6" required />
+        </label>
+
+        <p id="signup-error" class="form-error" role="alert" hidden></p>
+        <button id="signup-submit" type="submit" class="btn-primary">create account</button>
+        <button type="button" class="btn-ghost" data-go="welcome">back</button>
+      </form>
+    </section>
+
+    <!-- ── SIGN IN ── -->
+    <section id="screen-signin" class="screen center" hidden>
+      <form id="signin-form" class="card" novalidate>
+        <h1 class="logo-big serif">Welcome back</h1>
+        <label class="field">
+          <span>email</span>
+          <input id="signin-email" type="email" autocomplete="email" placeholder="you@example.com" required />
+        </label>
+        <label class="field">
+          <span>password</span>
+          <input id="signin-password" type="password" autocomplete="current-password" placeholder="your password" required />
+        </label>
+        <p id="signin-error" class="form-error" role="alert" hidden></p>
+        <button id="signin-submit" type="submit" class="btn-primary">sign in</button>
+        <button type="button" class="btn-ghost" data-go="welcome">back</button>
+      </form>
+    </section>
+
+    <!-- ── APP / PAIRING ── -->
+    <section id="screen-app" class="screen center" hidden>
+      <div class="card">
+        <div class="app-head">
+          <p class="muted">hey <span id="hello-name">you</span> <span id="role-pill" class="pill">her partner</span></p>
+          <button id="signout-btn" class="btn-link">sign out</button>
+        </div>
+
+        <div class="code-card">
+          <p class="muted">your pairing code</p>
+          <p id="my-code" class="code-big">——————</p>
+          <p class="muted small">share this with your partner so they can link to you</p>
+        </div>
+
+        <!-- unpaired: enter their code -->
+        <form id="pair-form" class="pair-box" hidden>
+          <label class="field">
+            <span>enter the code they shared with you</span>
+            <input id="partner-code" type="text" inputmode="latin" autocapitalize="characters"
+                   autocomplete="off" spellcheck="false" maxlength="6" placeholder="ABC123" />
+          </label>
+          <p id="pair-error" class="form-error" role="alert" hidden></p>
+          <button id="link-btn" type="submit" class="btn-primary">link accounts</button>
+        </form>
+
+        <!-- paired -->
+        <div id="paired-box" class="paired-box" hidden>
+          <p class="paired-line serif">you're paired with <span id="partner-name">your partner</span> ♡</p>
+          <button id="start-hangout" class="btn-primary">start a hangout →</button>
+          <p class="muted small">video call, screen share &amp; chat — just the two of you. The tracker &amp; daily note land in the next stages.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── HANGOUT ROOM (video call + screen share + ephemeral chat) ── -->
+    <section id="screen-hangout" class="screen hg" hidden>
+      <div class="hg-head">
+        <div>
+          <p class="hg-title serif">hangout</p>
+          <p class="muted small"><span id="hg-status">…</span></p>
+        </div>
+        <button id="hg-hangup" class="btn-link hg-leave">leave</button>
+      </div>
+
+      <div class="hg-stage">
+        <video id="hg-remote" class="hg-remote" autoplay playsinline></video>
+        <video id="hg-local" class="hg-local" autoplay playsinline muted></video>
+        <p class="hg-with hand">with <span id="hg-partner">your partner</span></p>
+      </div>
+
+      <div class="hg-controls">
+        <button id="hg-mic" class="hg-ctl" data-off="0">mic on</button>
+        <button id="hg-cam" class="hg-ctl" data-off="0">camera on</button>
+        <button id="hg-screen" class="hg-ctl">share screen</button>
+      </div>
+
+      <div class="hg-chat">
+        <div id="hg-chat-log" class="hg-chat-log" aria-live="polite"></div>
+        <form id="hg-chat-form" class="hg-chat-form">
+          <input id="hg-chat-input" type="text" autocomplete="off" placeholder="say something…" maxlength="500" />
+          <button type="submit" class="btn-primary hg-send">send</button>
+        </form>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ── pre-boot config check (the ONLY inline JS in this file) ── -->
+  <script src="config.js"></script>
+  <script>
+    (function () {
+      var c = window.WHM_CONFIG && window.WHM_CONFIG.supabase;
+      var ok = c && c.url && c.anonKey && String(c.url).indexOf("PASTE_") !== 0;
+      var loading = document.getElementById("screen-loading");
+      if (!ok) {
+        if (loading) loading.hidden = true;
+        document.getElementById("screen-setup").hidden = false;
+        return;
+      }
+      var s = document.createElement("script");
+      s.type = "module";
+      s.src = "js/main.js";
+      document.body.appendChild(s);
+    })();
+  </script>
+</body>
+</html>

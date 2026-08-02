@@ -19,12 +19,24 @@ For a private two-person app that's extra friction.
 
 ## 2. Deploy the folder (Netlify)
 
-- **First time:** <https://app.netlify.com/drop> → drag the whole **`whm-stage1`**
-  folder onto the drop zone. You get a URL like `https://some-name.netlify.app`.
-- **Updating:** Netlify site → **Deploys** → drag the folder again. Same URL.
+The live site is [`whm-couple.netlify.app`](https://whm-couple.netlify.app)
+(site id `67ba4904-c92b-4016-92c6-c4b019042b9a`, team `definitelynotdd`).
+`netlify.toml` at the repo root pins `publish = whm-site` so the correct folder
+ships.
 
-> `config.js` is git-ignored but **must** be in the folder you drag to Netlify —
-> that's how the deployed app gets its Supabase URL + key.
+Three ways to redeploy, pick whichever fits:
+
+- **Netlify MCP (from Claude):** ask Claude to "redeploy whm-site" — it calls
+  the deploy-site MCP tool which returns a shell command, then runs it. Uploads
+  the whm-site folder and waits for the deploy to finish. No browser needed.
+- **Netlify CLI:** `npx -y netlify-cli deploy --site 67ba4904-c92b-4016-92c6-c4b019042b9a --dir whm-site --prod`
+- **Drag-and-drop:** <https://app.netlify.com/drop> → drag the **`whm-site`**
+  folder. First time it creates a new site; after that use the Deploys tab of
+  the existing site to update in place.
+
+> `config.js` is git-ignored but **must** be in the folder that ships — that's
+> how the deployed app gets its Supabase URL + key. Netlify preserves it because
+> the deploy just uploads the folder contents verbatim.
 
 ## 3. (Only if email confirmation is ON) Set the Site URL
 
@@ -42,6 +54,11 @@ OFF doesn't need this — Supabase doesn't restrict sign-in by origin.)
 3. On one, type the other's code → **link accounts**.
 4. **Both** screens should flip to "you're paired with …" with no refresh
    (that's Supabase Realtime).
+5. **Hangout smoke test:** on the paired screen, tap **start a hangout →** on
+   both sides. You should see each other's camera, hear each other, and see the
+   text chat work. Try **share screen** with "Also share tab audio" ticked in
+   the picker — layout flips to 3/4 screen + 1/4 stacked cameras and shared
+   audio comes through with a volume slider on the viewer side.
 
 ## If something fails
 

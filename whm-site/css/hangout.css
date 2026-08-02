@@ -113,14 +113,16 @@
   background: #000;
 }
 .hg-stage.sharing .hg-remote-wrap {
-  position: static;
+  /* relative (not static) so the mute pill inside stays anchored to this wrap
+     — static would let it escape and land on the screencast slot */
+  position: relative;
   inset: auto;
   grid-column: 2; grid-row: 1;
   width: 100%; height: 100%;
   border-radius: 10px;
 }
 .hg-stage.sharing .hg-local-wrap {
-  position: static;
+  position: relative;
   right: auto; bottom: auto;
   grid-column: 2; grid-row: 2;
   width: 100%; height: 100%; max-width: none;

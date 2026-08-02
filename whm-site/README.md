@@ -103,27 +103,32 @@ just depletes the free quota.
 ## Project structure
 
 ```
-whm-stage1/
-├── index.html              All four screens: welcome / signup / signin / paired
+whm-site/
+├── index.html              All screens: welcome / signup / signin / paired / hangout
 ├── config.example.js       Template — copy to config.js and fill in
-├── config.js               YOU CREATE THIS (your real Firebase values)
-├── firestore.rules         Security rules — paste into Firebase console
+├── config.js               YOU CREATE THIS (your real Supabase values)
 ├── README.md               This file
 ├── DEPLOY.md               Condensed deploy steps
-├── HANDOVER.md             Full project history + design decisions + roadmap
+├── HANDOVER.md             Project history + design decisions + roadmap
+├── supabase/
+│   └── schema.sql          Canonical Postgres schema (already applied)
 ├── css/
 │   ├── shared.css          Fonts + WHM design tokens (sage palette, grain, etc.)
-│   └── auth.css            Auth-screen-specific layout
+│   ├── auth.css            Auth-screen-specific layout
+│   └── hangout.css         Video call / screen share / chat layout
 ├── js/
-│   ├── firebase-init.js    Initializes Firebase app/auth/db from config
-│   ├── auth.js             signUp / signIn / signOut + user-doc creation
-│   ├── pairing.js          Pairing-code lookup + claim + live user-doc listener
+│   ├── supabase-init.js    Creates the Supabase client from config
+│   ├── auth.js             signUp / signIn / signOut / friendlyAuthError
+│   ├── pairing.js          Live user-row subscription + claim_partner RPC
+│   ├── rtc.js              Perfect-negotiation WebRTC wrapper
+│   ├── hangout.js          Room lifecycle: media, signaling, chat, screen share
 │   └── main.js             DOM event wiring + screen routing
 ├── assets/                 Fraunces / Nunito / Caveat font files (.woff2)
 └── icons/                  PWA icons (present, not wired up until a later stage)
 ```
 
-About 950 KB total, most of it fonts.
+The README below still describes the original Firebase design in places — see
+HANDOVER.md for the current, accurate story (Supabase + hangout + Netlify).
 
 ---
 

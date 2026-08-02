@@ -11,6 +11,8 @@
   flex-direction: column;
   gap: 12px;
 }
+/* give the room more real estate once anyone starts sharing */
+.hg:has(.hg-stage.sharing) { max-width: 1240px; }
 
 .hg-head {
   display: flex;
@@ -33,24 +35,51 @@
   overflow: hidden;
   box-shadow: 0 14px 38px rgba(42, 36, 24, 0.16);
 }
-.hg-remote {
+.hg-remote-wrap {
   position: absolute; inset: 0;
+  background: #1c1a14;
+  overflow: hidden;
+}
+.hg-remote {
   width: 100%; height: 100%;
   object-fit: cover;
   background: #1c1a14;
 }
-.hg-local {
+.hg-local-wrap {
   position: absolute;
   right: 12px; bottom: 12px;
   width: 28%; max-width: 170px;
   aspect-ratio: 4 / 3;
-  object-fit: cover;
   border-radius: 12px;
   border: 2px solid rgba(255, 255, 255, 0.85);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
   background: #2a2418;
-  transform: scaleX(-1);            /* mirror your own preview */
+  overflow: hidden;
   z-index: 2;
+}
+.hg-local {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);            /* mirror your own preview */
+}
+.hg-mute-badge {
+  position: absolute;
+  top: 8px; left: 8px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(185, 107, 73, 0.94);   /* rust */
+  color: #fff;
+  font: 700 11px 'Nunito', system-ui, sans-serif;
+  letter-spacing: 0.03em;
+  z-index: 3;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+  display: none;
+}
+.hg-mute-badge[data-on="1"] { display: inline-block; }
+.hg-screencast {
+  display: none;                    /* hidden until someone shares */
+  background: #000;
 }
 .hg-with {
   position: absolute;
@@ -60,6 +89,57 @@
   color: rgba(255, 255, 255, 0.92);
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
   z-index: 2;
+}
+
+/* ---- shared-screen layout: screen 3/4, cameras stacked in 1/4 ---- */
+.hg-stage.sharing {
+  /* drop the 16:10 lock — screen shares often don't match it, and letting the
+     stage grow tall lets a portrait/PDF source use the whole slot */
+  aspect-ratio: auto;
+  height: min(78vh, 820px);
+  display: grid;
+  grid-template-columns: 3fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+}
+.hg-stage.sharing .hg-screencast {
+  display: block;
+  position: static;
+  grid-column: 1; grid-row: 1 / span 2;
+  width: 100%; height: 100%;
+  object-fit: contain;
+  border-radius: 10px;
+  background: #000;
+}
+.hg-stage.sharing .hg-remote-wrap {
+  position: static;
+  inset: auto;
+  grid-column: 2; grid-row: 1;
+  width: 100%; height: 100%;
+  border-radius: 10px;
+}
+.hg-stage.sharing .hg-local-wrap {
+  position: static;
+  right: auto; bottom: auto;
+  grid-column: 2; grid-row: 2;
+  width: 100%; height: 100%; max-width: none;
+  aspect-ratio: auto;
+  border: none; box-shadow: none;
+  border-radius: 10px;
+}
+.hg-stage.sharing .hg-with { display: none; }
+
+@media (max-width: 640px) {
+  /* stack screen on top, cameras side-by-side under it */
+  .hg-stage.sharing {
+    height: min(82vh, 720px);
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 3fr 1fr;
+  }
+  .hg-stage.sharing .hg-screencast  { grid-column: 1 / span 2; grid-row: 1; }
+  .hg-stage.sharing .hg-remote-wrap { grid-column: 1; grid-row: 2; }
+  .hg-stage.sharing .hg-local-wrap  { grid-column: 2; grid-row: 2; }
 }
 
 /* ---- controls ---- */
@@ -94,6 +174,26 @@
   color: var(--pri-ink);
 }
 .hg-ctl[hidden] { display: none; }
+
+/* volume slider — only appears while someone is sharing screen */
+.hg-vol {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--pri-ink);
+  font: 600 13px 'Nunito', system-ui, sans-serif;
+}
+.hg-vol-label { white-space: nowrap; }
+.hg-vol input[type="range"] {
+  accent-color: var(--pri);
+  width: 110px;
+  cursor: pointer;
+}
+.hg-stage.sharing ~ .hg-controls .hg-vol { display: inline-flex; }
 
 /* ---- chat ---- */
 .hg-chat {

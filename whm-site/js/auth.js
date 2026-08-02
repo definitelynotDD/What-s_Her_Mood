@@ -34,12 +34,22 @@ export async function signOutUser() {
   if (error) throw error;
 }
 
-// Fire once with the current user, then on every auth change. Returns an
-// unsubscribe function.
+// Fire once with the current user, then only on real signed-in/signed-out
+// transitions — Supabase fires onAuthStateChange for TOKEN_REFRESHED / tab
+// visibility changes too, and passing every one through would kick the user
+// back to the "app" screen mid-hangout. Dedupe by uid so cb only sees
+// null↔user changes.
 export function watchAuth(cb) {
-  supabase.auth.getSession().then(({ data }) => cb(data.session ? data.session.user : null));
+  let lastUid; // undefined = never fired; null = signed out; string = signed in
+  const fire = (user) => {
+    const uid = user ? user.id : null;
+    if (uid === lastUid) return;
+    lastUid = uid;
+    cb(user);
+  };
+  supabase.auth.getSession().then(({ data }) => fire(data.session ? data.session.user : null));
   const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-    cb(session ? session.user : null);
+    fire(session ? session.user : null);
   });
   return () => sub.subscription.unsubscribe();
 }

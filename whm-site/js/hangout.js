@@ -65,11 +65,34 @@ export async function openHangout({ me, partner, myName, partnerName, onExit }) 
     config: { broadcast: { self: false }, presence: { key: String(me) } },
   });
 
+  // Route incoming media by the MediaStream id the sender grouped it under:
+  // getUserMedia is one stream (camera + mic); getDisplayMedia is a second,
+  // separate stream. First stream we see = partner's camera; a later, different
+  // stream = their screen. Toggling to the .sharing layout is driven by the
+  // paired screen-on/off broadcasts below so the UI flips at the right moment.
+  const remote = { cameraId: null, screenId: null };
+  function playInto(el, stream) {
+    el.srcObject = stream;
+    const p = el.play && el.play();
+    if (p && typeof p.catch === "function") p.catch(() => {});
+  }
+  function routeIncomingStream(stream) {
+    if (!stream) return;
+    if (!remote.cameraId || stream.id === remote.cameraId) {
+      remote.cameraId = stream.id;
+      playInto($("hg-remote"), stream);
+    } else {
+      remote.screenId = stream.id;
+      playInto($("hg-screencast"), stream);
+    }
+    status("connected ♡");
+  }
+
   const peer = createPeer({
     iceServers: iceServers(),
     polite,
     sendSignal: (sig) => channel.send({ type: "broadcast", event: "signal", payload: { from: me, sig } }),
-    onRemoteStream: (stream) => { $("hg-remote").srcObject = stream; status("connected ♡"); },
+    onRemoteStream: routeIncomingStream,
     onState: (st) => {
       if (st === "connecting") status("connecting…");
       else if (st === "connected") status("connected ♡");
@@ -79,37 +102,74 @@ export async function openHangout({ me, partner, myName, partnerName, onExit }) 
   });
 
   let tracksAdded = false;
-  function maybeStart() {
-    if (tracksAdded) return;
-    const present = Object.keys(channel.presenceState() || {}).length;
-    if (present >= 2) {
-      tracksAdded = true;
-      status("connecting…");
-      localStream.getTracks().forEach((t) => peer.pc.addTrack(t, localStream));
-    } else {
-      status("waiting for " + (partnerName || "your partner") + " to join…");
+  let partnerHere = false;
+
+  // Rendezvous via a broadcast "hello" handshake instead of Realtime presence
+  // — presence hasn't been delivering reliably here, but broadcast (same feature
+  // chat rides on) is proven to work. Anything we hear from the partner counts
+  // as "they're here" and unlocks addTrack, so negotiation can start.
+  function sayHello() {
+    channel.send({ type: "broadcast", event: "hello", payload: { from: me } });
+  }
+  function markPartnerHere() {
+    if (!partnerHere) {
+      partnerHere = true;
+      // Reply so partner also learns we're here — covers the case where their
+      // initial hello was broadcast before we subscribed and was lost.
+      sayHello();
     }
+    if (tracksAdded) return;
+    tracksAdded = true;
+    status("connecting…");
+    localStream.getTracks().forEach((t) => peer.pc.addTrack(t, localStream));
   }
 
   channel
     .on("broadcast", { event: "signal" }, ({ payload }) => {
-      if (payload && payload.from !== me) peer.handleSignal(payload.sig);
+      if (payload && payload.from !== me) { markPartnerHere(); peer.handleSignal(payload.sig); }
+    })
+    .on("broadcast", { event: "hello" }, ({ payload }) => {
+      if (payload && payload.from !== me) markPartnerHere();
     })
     .on("broadcast", { event: "chat" }, ({ payload }) => {
-      if (payload && payload.from !== me) addChat(payload.text, "them", partnerName);
+      if (payload && payload.from !== me) { markPartnerHere(); addChat(payload.text, "them", partnerName); }
     })
-    .on("presence", { event: "sync" }, maybeStart)
-    .on("presence", { event: "join" }, maybeStart)
+    .on("broadcast", { event: "mute" }, ({ payload }) => {
+      if (payload && payload.from !== me) {
+        $("hg-remote-mute").dataset.on = payload.muted ? "1" : "0";
+      }
+    })
+    .on("broadcast", { event: "screen-on" }, ({ payload }) => {
+      if (payload && payload.from !== me) $("hg-stage").classList.add("sharing");
+    })
+    .on("broadcast", { event: "screen-off" }, ({ payload }) => {
+      if (payload && payload.from !== me) {
+        $("hg-stage").classList.remove("sharing");
+        const scv = $("hg-screencast");
+        if (scv) scv.srcObject = null;
+        remote.screenId = null;
+      }
+    })
     .on("presence", { event: "leave" }, () => {
       const present = Object.keys(channel.presenceState() || {}).length;
       if (present < 2) status((partnerName || "your partner") + " left the room.");
     });
 
   await channel.subscribe(async (st) => {
-    if (st === "SUBSCRIBED") { await channel.track({ at: Date.now() }); maybeStart(); }
+    if (st === "SUBSCRIBED") {
+      // Presence is kept only for the nice "left the room" signal; the rendezvous
+      // itself is the broadcast handshake below.
+      try { await channel.track({ at: Date.now() }); } catch (_) {}
+      status("waiting for " + (partnerName || "your partner") + " to join…");
+      sayHello();
+    }
   });
 
-  room = { me, partner, partnerName, channel, peer, localStream, screenStream: null, _onExit: onExit };
+  room = {
+    me, partner, partnerName, channel, peer, localStream,
+    screenStream: null, screenSender: null, screenAudioSender: null,
+    _onExit: onExit,
+  };
 
   // ---- controls ----
   wireControls();
@@ -122,8 +182,13 @@ function wireControls() {
   mic.onclick = () => {
     const tr = room.localStream.getAudioTracks()[0]; if (!tr) return;
     tr.enabled = !tr.enabled;
-    mic.dataset.off = tr.enabled ? "0" : "1";
-    mic.textContent = tr.enabled ? "mic on" : "mic off";
+    const muted = !tr.enabled;
+    mic.dataset.off = muted ? "1" : "0";
+    mic.textContent = muted ? "mic off" : "mic on";
+    // pill on our own PIP so we can see we're muted
+    $("hg-local-mute").dataset.on = muted ? "1" : "0";
+    // and let partner know so their view of us shows the pill too
+    room.channel.send({ type: "broadcast", event: "mute", payload: { from: room.me, muted } });
   };
   cam.onclick = () => {
     const tr = room.localStream.getVideoTracks()[0]; if (!tr) return;
@@ -133,6 +198,14 @@ function wireControls() {
   };
   scr.onclick = () => (room.screenStream ? stopScreen() : startScreen());
   bye.onclick = () => closeHangout();
+
+  const vol = $("hg-vol-input");
+  if (vol) {
+    const apply = () => { const sc = $("hg-screencast"); if (sc) sc.volume = Number(vol.value); };
+    vol.value = "1";
+    apply();
+    vol.oninput = apply;
+  }
 
   form.onsubmit = (e) => {
     e.preventDefault();
@@ -145,28 +218,63 @@ function wireControls() {
 }
 
 async function startScreen() {
-  if (!room) return;
+  if (!room || room.screenStream) return;
   let screen;
-  try { screen = await navigator.mediaDevices.getDisplayMedia({ video: true }); }
-  catch (_) { return; } // user cancelled the picker
+  try {
+    // audio:true is best-effort — Chrome/Edge deliver it when the user picks a
+    // tab (via "Also share tab audio") or whole screen on Windows/ChromeOS;
+    // Firefox / Safari / mobile silently return no audio track.
+    screen = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+  } catch (_) { return; } // user cancelled the picker
   const screenTrack = screen.getVideoTracks()[0];
-  const sender = room.peer.pc.getSenders().find((s) => s.track && s.track.kind === "video");
-  if (sender) await sender.replaceTrack(screenTrack);
-  $("hg-local").srcObject = screen;
+  const screenAudioTrack = screen.getAudioTracks()[0]; // may be undefined
+
+  // Tell partner FIRST so their layout is ready when the new track arrives.
+  room.channel.send({ type: "broadcast", event: "screen-on", payload: { from: room.me } });
+
+  // Add as a new sender — camera track stays live, partner keeps seeing our face.
+  room.screenSender = room.peer.pc.addTrack(screenTrack, screen);
+  if (screenAudioTrack) {
+    // Riding it on the same MediaStream as the video means it lands in
+    // #hg-screencast on the receiver side and plays through that element.
+    room.screenAudioSender = room.peer.pc.addTrack(screenAudioTrack, screen);
+  }
   room.screenStream = screen;
+
+  // Local UI: show the screencast in the main slot; camera preview stays in its corner.
+  const scv = $("hg-screencast");
+  scv.srcObject = screen;
+  scv.muted = true;
+  const p = scv.play && scv.play(); if (p && typeof p.catch === "function") p.catch(() => {});
+  $("hg-stage").classList.add("sharing");
+
   $("hg-screen").textContent = "stop sharing";
   $("hg-screen").dataset.on = "1";
-  // when the user clicks the browser's native "Stop sharing"
+
+  // Native "Stop sharing" bar → treat as our stop.
   screenTrack.onended = () => stopScreen();
 }
 
 async function stopScreen() {
-  if (!room) return;
-  const camTrack = room.localStream.getVideoTracks()[0];
-  const sender = room.peer.pc.getSenders().find((s) => s.track && s.track.kind === "video");
-  if (sender && camTrack) await sender.replaceTrack(camTrack);
-  $("hg-local").srcObject = room.localStream;
-  if (room.screenStream) { room.screenStream.getTracks().forEach((t) => t.stop()); room.screenStream = null; }
+  if (!room || !room.screenStream) return;
+
+  room.channel.send({ type: "broadcast", event: "screen-off", payload: { from: room.me } });
+
+  if (room.screenSender) {
+    try { room.peer.pc.removeTrack(room.screenSender); } catch (_) {}
+    room.screenSender = null;
+  }
+  if (room.screenAudioSender) {
+    try { room.peer.pc.removeTrack(room.screenAudioSender); } catch (_) {}
+    room.screenAudioSender = null;
+  }
+  try { room.screenStream.getTracks().forEach((t) => t.stop()); } catch (_) {}
+  room.screenStream = null;
+
+  const scv = $("hg-screencast");
+  if (scv) scv.srcObject = null;
+  $("hg-stage").classList.remove("sharing");
+
   $("hg-screen").textContent = "share screen";
   $("hg-screen").dataset.on = "0";
 }
@@ -179,9 +287,14 @@ export function closeHangout() {
   try { room.peer.close(); } catch (_) {}
   try { room.channel.untrack(); } catch (_) {}
   try { supabase.removeChannel(room.channel); } catch (_) {}
-  const remote = $("hg-remote"), local = $("hg-local");
-  if (remote) remote.srcObject = null;
-  if (local) local.srcObject = null;
+  const remoteEl = $("hg-remote"), localEl = $("hg-local"), scv = $("hg-screencast"), stage = $("hg-stage");
+  if (remoteEl) remoteEl.srcObject = null;
+  if (localEl) localEl.srcObject = null;
+  if (scv) scv.srcObject = null;
+  if (stage) stage.classList.remove("sharing");
+  const lm = $("hg-local-mute"), rm = $("hg-remote-mute");
+  if (lm) lm.dataset.on = "0";
+  if (rm) rm.dataset.on = "0";
   room = null;
   if (typeof exit === "function") exit();
 }

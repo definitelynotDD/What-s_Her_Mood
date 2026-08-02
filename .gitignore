@@ -10,3 +10,6 @@ Thumbs.db
 
 # Dependency dirs (defensive — the project has no build step today)
 node_modules/
+
+# Netlify CLI local cache — per-machine state, not source
+.netlify/

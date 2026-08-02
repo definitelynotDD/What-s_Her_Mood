@@ -20,7 +20,16 @@ export function createPeer({ iceServers, polite, sendSignal, onRemoteStream, onS
   };
 
   pc.onicecandidate = ({ candidate }) => {
-    if (candidate) sendSignal({ candidate });
+    if (candidate) {
+      // diagnostic: which candidate types are gathered (host / srflx / relay)
+      // — if we never see "relay", TURN isn't being reached.
+      console.log("[rtc] local candidate", candidate.type, candidate.protocol, candidate.address || candidate.candidate);
+      sendSignal({ candidate });
+    }
+  };
+
+  pc.oniceconnectionstatechange = () => {
+    console.log("[rtc] iceConnectionState", pc.iceConnectionState);
   };
 
   pc.onnegotiationneeded = async () => {

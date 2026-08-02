@@ -113,15 +113,26 @@
         </div>
         <button id="hg-hangup" class="btn-link hg-leave">leave</button>
       </div>
-      <div class="hg-stage">
-        <video id="hg-remote" class="hg-remote" autoplay playsinline></video>
-        <video id="hg-local" class="hg-local" autoplay playsinline muted></video>
+      <div id="hg-stage" class="hg-stage">
+        <video id="hg-screencast" class="hg-screencast" autoplay playsinline></video>
+        <div class="hg-remote-wrap">
+          <video id="hg-remote" class="hg-remote" autoplay playsinline></video>
+          <span id="hg-remote-mute" class="hg-mute-badge">muted</span>
+        </div>
+        <div class="hg-local-wrap">
+          <video id="hg-local" class="hg-local" autoplay playsinline muted></video>
+          <span id="hg-local-mute" class="hg-mute-badge">muted</span>
+        </div>
         <p class="hg-with hand">with <span id="hg-partner">your partner</span></p>
       </div>
       <div class="hg-controls">
         <button id="hg-mic" class="hg-ctl" data-off="0">mic on</button>
         <button id="hg-cam" class="hg-ctl" data-off="0">camera on</button>
         <button id="hg-screen" class="hg-ctl">share screen</button>
+        <label class="hg-vol" title="shared-audio volume">
+          <span class="hg-vol-label">shared audio</span>
+          <input id="hg-vol-input" type="range" min="0" max="1" step="0.02" value="1" />
+        </label>
       </div>
       <div class="hg-chat">
         <div id="hg-chat-log" class="hg-chat-log" aria-live="polite"></div>

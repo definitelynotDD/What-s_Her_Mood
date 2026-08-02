@@ -1,0 +1,4 @@
+# Deploy the whm-site folder as-is. No build step — the app is plain
+# HTML + ES modules + supabase-js from a CDN.
+[build]
+  publish = "whm-site"

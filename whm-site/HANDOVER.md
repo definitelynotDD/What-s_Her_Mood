@@ -9,25 +9,29 @@ reflects the switch from Firebase to Supabase.
 
 ## Where the build stands (read this first)
 
-**Stage 1 (Auth + Pairing) is deployed and verified.** Two people can sign up
-(each picks "her" or "her partner"), each gets a 6-character pairing code, and
-entering the partner's code links the two accounts in real time. Plus a
-working peer-to-peer hangout (video + audio + chat + screen share with tab
-audio + per-viewer volume + mute pill) that started as a stretch feature and
-now works end-to-end.
+**Stages 1 + 2 are deployed and verified.** Two people can sign up (each picks
+"her" or "her partner"), each gets a 6-character pairing code, and entering
+the partner's code links the two accounts in real time. Once paired, the app
+screen becomes a small daily dashboard: HER's cycle tracker (current phase +
+day, log period starts, tunable cycle/period length) and HER's to-do list
+(fully partner-readable). Plus a working peer-to-peer hangout (video + audio
++ chat + screen share with tab audio + per-viewer volume + mute pill) that
+started as a stretch feature and now works end-to-end.
 
 - **Backend:** Supabase project **`mygaahtcnpfixdrwfptw`** (region
-  ap-southeast-1). The database schema is applied (see `supabase/schema.sql`),
-  `config.js` has the project URL + anon key. All security-advisor findings are
-  intentional (the guarded `claim_partner` RPC) or optional (leaked-password
-  protection).
+  ap-southeast-1). The database schema is applied (see `supabase/schema.sql`,
+  three migrations: `whm_stage1_auth_pairing`, `whm_stage1_harden_functions`,
+  `whm_stage2_cycle_todos`), `config.js` has the project URL + anon key. All
+  security-advisor findings are intentional (the guarded `claim_partner` RPC)
+  or optional (leaked-password protection).
 - **Hosting:** [whm-couple.netlify.app](https://whm-couple.netlify.app) —
   Netlify site id `67ba4904-c92b-4016-92c6-c4b019042b9a`, team
   `definitelynotdd`. `netlify.toml` at the repo root pins `publish = whm-site`
   so the correct folder ships.
 - **Frontend:** `index.html` + `css/` + `js/` — one folder, `whm-site/`. Modules:
-  `supabase-init.js`, `auth.js`, `pairing.js`, `main.js` (Stage 1 core) plus
-  `rtc.js` + `hangout.js` (the P2P hangout).
+  `supabase-init.js`, `auth.js`, `pairing.js`, `main.js` (Stage 1 core);
+  `cycle.js` + `todos.js` + `tracker.js` (Stage 2); `rtc.js` + `hangout.js`
+  (the P2P hangout).
 
 **Why not Firebase?** Stage 1 was first built on Firebase, but creating the
 Firestore database hit a "billing must be enabled" wall, and Firebase has no
@@ -44,8 +48,8 @@ canonical, `whm-stage1/` is gone. If old README/HANDOVER copies mention
 
 **Next actions:**
 
-1. **Stage 2** — cycle tracker (her) + to-do list (her, partner-readable).
-   That's the daily-useful core.
+1. **Stage 3** — wise-words bank + his-side dashboard tile that folds in
+   today's phase-aware note (the tracker already computes the phase).
 2. Optional hangout upgrades if wanted later — a dedicated TURN provider
    (Twilio/Cloudflare Calls) instead of the shared Open Relay, a "your partner
    left" heartbeat since we dropped the presence rendezvous.
@@ -171,25 +175,77 @@ goes through, just video-only.
 router yanks the user back to the app screen mid-call. See `auth.js`
 `watchAuth`.
 
-## Data model (Stage 1)
+## Stage 2 (cycle tracker + to-dos)
+
+Both features are **HER-owned, partner-readable**. Three tables — `cycle_settings`
+(one row per her-user, tunable cycle & period length), `period_starts` (log of
+period-start dates, unique per user + date), and `todos` (flat list, no
+categories, no per-item privacy toggle). All three enable RLS with the same
+pattern Stage 1 uses: the row-owner reads/writes; the partner reads via the
+`private.my_partner()` helper.
+
+**Role gate.** Writes are further gated to `role='her'` by a new
+`private.my_role()` helper — even if a `partner` account somehow tried to
+insert its own cycle/todo row, the RLS WITH-CHECK on the write policy would
+reject it. This is defence-in-depth; the UI only renders write controls when
+`role='her'` anyway.
+
+**Phase math.** `cycle.js` uses a simple Naegele-style luteal-phase model:
+ovulation lands around `max(P+2, C-14)` where C is the cycle length and P the
+period length. Menstrual is days 1..P; PMS is the last five days; ovulation is
+a three-day window centred on the estimate; the rest is follicular before and
+luteal after. Precise enough for a daily read; not a medical device. Overdue
+cycles (day > cycleLength) hold on PMS + surface a "log the next start when it
+arrives" hint.
+
+**Realtime.** All three tables are on the `supabase_realtime` publication.
+`tracker.js` subscribes to the *her-user's* uid regardless of who's viewing —
+so when SHE logs a period start on her phone, HIS phone's phase pill flips
+without a refresh, and vice versa for a checked-off to-do.
+
+**Mounting.** The tracker lives inside the paired-box on `#screen-app`. It
+mounts when the pair completes and unmounts on sign-out. Views branch on the
+signed-in user's role: HER gets editable cards; PARTNER gets read-only cards
+(no add-to-do form, no period-log form, no edit/remove buttons).
+
+## Data model (built so far)
 
 ```
 auth.users                       -- Supabase-managed accounts
-public.users
+public.users                     -- Stage 1
   id uuid PK -> auth.users.id
   email, display_name,
   role 'her'|'partner',
   paired_with uuid -> users.id (nullable),
   pairing_code text unique,      -- queried directly; no separate codes table
   created_at
+
+public.cycle_settings            -- Stage 2 (one row per her-user)
+  user_id uuid PK -> users.id,
+  cycle_length int   default 28  check 20..45,
+  period_length int  default 5   check 2..10,
+  updated_at
+
+public.period_starts             -- Stage 2 (log of period-start dates)
+  id uuid PK, user_id -> users.id,
+  start_date date,
+  notes text,
+  created_at
+  unique (user_id, start_date)
+
+public.todos                     -- Stage 2 (her's list)
+  id uuid PK, user_id -> users.id,
+  title text (1..240),
+  done bool, done_at,
+  created_at
 ```
 
 No separate pairing-codes table is needed (unlike Firestore) — Postgres can query
 `where pairing_code = …` directly, and `claim_partner` does the lookup safely.
 
-Later stages become their own tables with their own RLS, e.g. `cycles` (Stage 2),
-`todos` (Stage 2, partner-readable), `profile_entries` + `question_history`
-(Stage 4), `recommendations` (Stage 5), `couples` (Stage 7+).
+Later stages will add their own tables with their own RLS, e.g.
+`profile_entries` + `question_history` (Stage 4), `recommendations` (Stage 5),
+`couples` (Stage 7+).
 
 ---
 
@@ -199,7 +255,7 @@ Later stages become their own tables with their own RLS, e.g. `cycles` (Stage 2)
 |---|---|---|
 | 1 | Auth + pairing | ✅ built, deployed, smoke-tested |
 | — | Hangout (video, chat, screen share w/ audio) | ✅ built, off-roadmap bonus |
-| 2 | Cycle tracker (her) + to-dos (her, partner-readable) | not started |
+| 2 | Cycle tracker (her) + to-dos (her, partner-readable) | ✅ built, deployed |
 | 3 | Wise-words bank + his-side dashboard | not started |
 | 4 | Question engine → profile entries | not started |
 | 5 | Gemini recommendation card (folds in date-night ideas) | not started |

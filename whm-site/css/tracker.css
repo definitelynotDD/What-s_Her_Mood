@@ -1,0 +1,203 @@
+/* ============================================================
+   WHM — tracker.css
+   Stage 2: cycle card + todos card, mounted inside the paired-box.
+   Same sage/cream/paper tokens as the rest of the app.
+   ============================================================ */
+
+#tracker { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; }
+#tracker[hidden] { display: none; }
+.tr-title {
+  margin: 6px 0 2px;
+  font-size: 22px;
+  color: var(--pri-ink);
+  text-align: left;
+}
+.tr-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px 14px;
+  display: flex; flex-direction: column; gap: 10px;
+  text-align: left;
+}
+.tr-h3 { margin: 0; font-size: 15px; font-weight: 700; color: var(--pri-ink); }
+
+/* ---- cycle card ---- */
+.cycle-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cycle-phase-pill {
+  padding: 3px 12px;
+  border-radius: 999px;
+  font: 700 12px 'Nunito', system-ui, sans-serif;
+  letter-spacing: .02em;
+  background: var(--pri-soft);
+  color: var(--pri-ink);
+  text-transform: lowercase;
+}
+.cycle-phase-pill[data-hue="rust"]  { background: var(--rust-soft);  color: var(--rust-ink); }
+.cycle-phase-pill[data-hue="teal"]  { background: var(--teal-soft);  color: var(--teal-ink); }
+.cycle-phase-pill[data-hue="honey"] { background: var(--honey-soft); color: var(--honey-ink); }
+.cycle-phase-pill[data-hue="plum"]  { background: var(--plum-soft);  color: var(--plum-ink); }
+.cycle-phase-pill[data-hue="muted"] { background: var(--cream-2);    color: var(--ink-soft); }
+
+.cycle-summary { display: flex; flex-direction: column; gap: 2px; }
+.cycle-day {
+  margin: 0;
+  font-size: 26px;
+  color: var(--pri-ink);
+  line-height: 1.1;
+}
+.cycle-note { margin: 0; font-size: 13.5px; }
+.cycle-overdue {
+  margin: 2px 0 0;
+  color: var(--rust-ink);
+  font-size: 17px;
+}
+.cycle-hint { margin: 2px 0 0; color: var(--pri); font-size: 17px; }
+
+.cycle-log {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 8px;
+  margin-top: 4px;
+}
+.cycle-log .field { gap: 4px; }
+.cycle-log input[type="date"] {
+  appearance: none;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  font: 15px 'Nunito', system-ui, sans-serif;
+}
+.cycle-log-btn { width: auto; padding: 10px 14px; font-size: 13.5px; }
+
+.cycle-tune, .cycle-history {
+  border-top: 1px dashed var(--line);
+  padding-top: 8px;
+}
+.cycle-tune-sum {
+  cursor: pointer;
+  font: 600 13px 'Nunito', system-ui, sans-serif;
+  color: var(--ink-soft);
+  list-style: none;
+  padding: 2px 0;
+}
+.cycle-tune-sum::before { content: "▸  "; color: var(--pri); }
+details[open] > .cycle-tune-sum::before { content: "▾  "; }
+.cycle-tune-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 8px;
+}
+.cycle-tune-grid input[type="number"] {
+  appearance: textfield;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  font: 15px 'Nunito', system-ui, sans-serif;
+  color: var(--ink);
+}
+.cycle-tune-save { margin-top: 8px; width: auto; padding: 8px 16px; font-size: 13.5px; }
+
+.cycle-history-list { list-style: none; padding: 6px 0 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.cycle-hist-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--cream-2);
+  font: 500 14px 'Nunito', system-ui, sans-serif;
+  color: var(--ink);
+}
+.cycle-hist-rm { color: var(--rust-ink); font-size: 12px; }
+.cycle-hist-empty { padding: 4px 2px; }
+
+/* ---- todos card ---- */
+.todos-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.todos-count-pill {
+  min-width: 22px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--pri-soft);
+  color: var(--pri-ink);
+  font: 700 12px 'Nunito', system-ui, sans-serif;
+  text-align: center;
+}
+.todos-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+.todos-form input {
+  appearance: none;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  font: 15px 'Nunito', system-ui, sans-serif;
+  outline: none;
+}
+.todos-form input:focus { border-color: var(--pri); box-shadow: 0 0 0 3px rgba(79,110,74,0.16); }
+.todos-add { width: auto; padding: 10px 16px; font-size: 14px; }
+
+.todos-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.todo-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px;
+  border-radius: 10px;
+  transition: background .15s;
+}
+.todo-row:hover { background: var(--cream-2); }
+.todo-check {
+  appearance: none;
+  width: 22px; height: 22px;
+  border-radius: 6px;
+  border: 1.5px solid var(--line);
+  background: #fff;
+  cursor: pointer;
+  padding: 0;
+  display: grid; place-items: center;
+  transition: background .15s, border-color .15s;
+}
+.todo-check:hover:not(:disabled) { border-color: var(--pri); }
+.todo-check:disabled { cursor: default; }
+.todo-check.is-on {
+  background: var(--pri);
+  border-color: var(--pri);
+}
+.todo-check.is-on::after {
+  content: "";
+  width: 6px; height: 11px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translateY(-1px);
+}
+.todo-text {
+  font: 500 15px 'Nunito', system-ui, sans-serif;
+  color: var(--ink);
+  word-break: break-word;
+}
+.todo-row.is-done .todo-text { color: var(--ink-soft); text-decoration: line-through; text-decoration-color: rgba(123,110,85,0.55); }
+.todo-actions { display: flex; gap: 4px; }
+.todo-edit, .todo-rm { font-size: 12px; }
+.todo-rm { color: var(--rust-ink); }
+.todos-empty { padding: 4px 2px 0; }
+
+@media (max-width: 380px) {
+  .cycle-log { grid-template-columns: 1fr; }
+  .cycle-log-btn { width: 100%; }
+  .cycle-tune-grid { grid-template-columns: 1fr; }
+}

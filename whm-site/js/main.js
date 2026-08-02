@@ -4,6 +4,7 @@ import {
 } from "./auth.js";
 import { watchMyUserRow, claimPartnerCode } from "./pairing.js";
 import { openHangout, closeHangout } from "./hangout.js";
+import { mountTracker, unmountTracker } from "./tracker.js";
 
 const $ = (sel) => document.querySelector(sel);
 const show = (el) => { if (el) el.hidden = false; };
@@ -56,8 +57,15 @@ async function renderUserRow(row) {
     $("#partner-name").textContent = partnerName;
     currentPairing = { me: row.id, partner: row.paired_with, myName: row.display_name, partnerName };
     show($("#paired-box"));
+    // Stage 2: mount her's daily dashboard (cycle + todos). Both partners see it;
+    // the tracker figures out edit vs. read-only from role. herUid = whichever
+    // one of the two is 'her'.
+    const herUid = row.role === "her" ? row.id : row.paired_with;
+    const herName = row.role === "her" ? row.display_name : partnerName;
+    mountTracker({ myUid: row.id, myRole: row.role, herUid, herName });
   } else {
     currentPairing = null;
+    unmountTracker();
     show($("#pair-form"));
   }
 }
@@ -66,6 +74,7 @@ watchAuth((user) => {
   stopUserRowWatch();
   if (!user) {
     closeHangout();
+    unmountTracker();
     currentPairing = null;
     showScreen("welcome");
     return;

@@ -1,10 +1,12 @@
 # WHM — What's her Mood
 
 > **⚠️ Backend updated: this README describes the original Firebase design, but
-> Stage 1 now runs on Supabase** (Postgres + Auth + Realtime). The concepts are
-> the same; only the backend mechanics differ. For the current, accurate setup
-> see **`DEPLOY.md`**, **`HANDOVER.md`**, and **`supabase/schema.sql`**. Mentions
-> of Firestore / `firestore.rules` / Firebase config below are historical.
+> Stages 1 + 2 now run on Supabase** (Postgres + Auth + Realtime). The concepts
+> are the same; only the backend mechanics differ. For the current, accurate
+> setup see **`DEPLOY.md`**, **`HANDOVER.md`**, and **`supabase/schema.sql`**.
+> Mentions of Firestore / `firestore.rules` / Firebase config below are
+> historical — the app is live at
+> [whm-couple.netlify.app](https://whm-couple.netlify.app).
 
 A private, two-person app for a couple. **She** tracks her cycle and to-dos.
 **He** sees her cycle (read-only), gets a small daily "wise words" note, and —
@@ -63,17 +65,19 @@ display type, **Nunito** for body, and **Caveat** for handwritten accents.
 
 ## Current status
 
-**Stage 1 (Auth + Pairing) is built and packaged.** It is the only stage
-shipped so far. It needs to be deployed and verified against your real Firebase
-project before more is built on top.
+**Stages 1 + 2 are built, deployed, and verified** at
+[whm-couple.netlify.app](https://whm-couple.netlify.app).
 
-What Stage 1 does: two people can sign up (each picks a role — "her" or "her
-partner"), each gets a 6-character pairing code, and entering your partner's
-code links the two accounts in real time.
+- **Stage 1** — sign up, pick "her" or "her partner", swap 6-character pairing
+  codes, link in real time.
+- **Bonus hangout** — an off-roadmap 2-person video/audio/chat room with screen
+  share (tab audio + per-viewer volume + mute pill).
+- **Stage 2** — HER's cycle tracker (log period starts, tunable cycle/period
+  length, current phase + day) and HER's to-dos (fully partner-readable). Both
+  land in the paired-box dashboard, in real time.
 
-What Stage 1 does NOT yet include: the tracker, to-dos, wise words, questions,
-recommendations, or PWA install. Those come in later stages (see
-[the roadmap](#the-roadmap)).
+Not yet built: wise words (Stage 3), question engine (Stage 4), Gemini
+recommendations (Stage 5), PWA wiring (Stage 6).
 
 ---
 
@@ -115,11 +119,15 @@ whm-site/
 ├── css/
 │   ├── shared.css          Fonts + WHM design tokens (sage palette, grain, etc.)
 │   ├── auth.css            Auth-screen-specific layout
+│   ├── tracker.css         Cycle + todos cards (Stage 2)
 │   └── hangout.css         Video call / screen share / chat layout
 ├── js/
 │   ├── supabase-init.js    Creates the Supabase client from config
 │   ├── auth.js             signUp / signIn / signOut / friendlyAuthError
 │   ├── pairing.js          Live user-row subscription + claim_partner RPC
+│   ├── cycle.js            Cycle data + phase math (Stage 2)
+│   ├── todos.js            Her todos CRUD + live subscription (Stage 2)
+│   ├── tracker.js          Cycle + todos UI, mounted inside the paired-box
 │   ├── rtc.js              Perfect-negotiation WebRTC wrapper
 │   ├── hangout.js          Room lifecycle: media, signaling, chat, screen share
 │   └── main.js             DOM event wiring + screen routing
@@ -358,8 +366,9 @@ folded in afterward, one at a time.
 
 | Stage | Scope | Status |
 |-------|-------|--------|
-| 1 | Auth + pairing | ✅ built, ⏳ user verifying |
-| 2 | Cycle tracker (her) + to-do list (her, partner-readable) | not started |
+| 1 | Auth + pairing | ✅ built, deployed, verified |
+| — | Hangout (video / chat / screen share w/ audio) | ✅ off-roadmap bonus |
+| 2 | Cycle tracker (her) + to-do list (her, partner-readable) | ✅ built, deployed |
 | 3 | Wise-words curated bank + his-side dashboard | not started |
 | 4 | Question engine — pool, prompting, profile entries | not started |
 | 5 | Gemini-powered recommendation card (+ folds in date-night ideas) | not started |

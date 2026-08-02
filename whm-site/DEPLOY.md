@@ -54,7 +54,13 @@ OFF doesn't need this — Supabase doesn't restrict sign-in by origin.)
 3. On one, type the other's code → **link accounts**.
 4. **Both** screens should flip to "you're paired with …" with no refresh
    (that's Supabase Realtime).
-5. **Hangout smoke test:** on the paired screen, tap **start a hangout →** on
+5. **Tracker smoke test (Stage 2):** on the HER-side paired screen, the "your
+   day" section shows a cycle card + a to-dos card. Log a period start (the
+   date input defaults to today) → phase pill should flip to `menstrual` and
+   day counter to `day 1 of 28`. Add a to-do → it appears in the list. Watch
+   the PARTNER side: same phase pill and to-do row should appear live, but
+   read-only (no add form, no edit/remove buttons, checkbox disabled).
+6. **Hangout smoke test:** on the paired screen, tap **start a hangout →** on
    both sides. You should see each other's camera, hear each other, and see the
    text chat work. Try **share screen** with "Also share tab audio" ticked in
    the picker — layout flips to 3/4 screen + 1/4 stacked cameras and shared

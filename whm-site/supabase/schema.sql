@@ -1,12 +1,18 @@
 -- ============================================================
---  WHM — Stage 1 schema (Supabase / Postgres)
---  Auth + pairing. This is the consolidated, already-applied schema for
---  project ref `mygaahtcnpfixdrwfptw`. Applied via two migrations:
---    whm_stage1_auth_pairing, whm_stage1_harden_functions
+--  WHM — schema (Supabase / Postgres). Applied to project `mygaahtcnpfixdrwfptw`.
 --
---  Model: one profile row per auth user. Pairing = both rows' `paired_with`
---  pointing at each other, linked atomically by claim_partner(). The client
---  never writes the table directly — signup is a trigger, pairing is an RPC.
+--  Stage 1: auth + pairing.
+--    Migrations: whm_stage1_auth_pairing, whm_stage1_harden_functions
+--    Model: one profile row per auth user. Pairing = both rows' `paired_with`
+--    pointing at each other, linked atomically by claim_partner(). The client
+--    never writes the users table directly — signup is a trigger, pairing is an RPC.
+--
+--  Stage 2: cycle tracker + to-dos.
+--    Migration: whm_stage2_cycle_todos
+--    Model: cycle_settings / period_starts / todos, all owned by HER, readable
+--    by her partner via the same private.my_partner() helper Stage 1 uses.
+--    Writes gated to role='her' by private.my_role() so a partner account can't
+--    accidentally seed its own rows even if the client tried.
 -- ============================================================
 
 -- ---- profile table ----
@@ -114,5 +120,93 @@ do $$ begin
     where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'users'
   ) then
     alter publication supabase_realtime add table public.users;
+  end if;
+end $$;
+
+-- ============================================================
+--  Stage 2 — cycle tracker + to-dos
+-- ============================================================
+
+-- my role, read without RLS recursion. Used by write policies below to gate
+-- inserts/updates to role='her' (the app-level product rule).
+create or replace function private.my_role()
+returns text language sql security definer set search_path = public stable as $$
+  select role from public.users where id = auth.uid()
+$$;
+revoke all on function private.my_role() from public;
+grant execute on function private.my_role() to authenticated;
+
+-- ---- cycle_settings: one row per her-user, tunable defaults ----
+create table public.cycle_settings (
+  user_id       uuid primary key references public.users(id) on delete cascade,
+  cycle_length  int  not null default 28 check (cycle_length between 20 and 45),
+  period_length int  not null default 5  check (period_length between 2 and 10),
+  updated_at    timestamptz not null default now()
+);
+alter table public.cycle_settings enable row level security;
+
+create policy "cs read own"     on public.cycle_settings for select
+  using (auth.uid() = user_id);
+create policy "cs read partner" on public.cycle_settings for select
+  using (user_id = private.my_partner());
+create policy "cs write own"    on public.cycle_settings for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id and private.my_role() = 'her');
+
+-- ---- period_starts: log of period start dates (one per date per user) ----
+create table public.period_starts (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references public.users(id) on delete cascade,
+  start_date date not null,
+  notes      text,
+  created_at timestamptz not null default now(),
+  unique (user_id, start_date)
+);
+alter table public.period_starts enable row level security;
+
+create policy "ps read own"     on public.period_starts for select
+  using (auth.uid() = user_id);
+create policy "ps read partner" on public.period_starts for select
+  using (user_id = private.my_partner());
+create policy "ps write own"    on public.period_starts for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id and private.my_role() = 'her');
+
+create index period_starts_user_date_idx on public.period_starts (user_id, start_date desc);
+
+-- ---- todos: her's list, partner-readable ----
+create table public.todos (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references public.users(id) on delete cascade,
+  title      text not null check (char_length(trim(title)) between 1 and 240),
+  done       boolean not null default false,
+  done_at    timestamptz,
+  created_at timestamptz not null default now()
+);
+alter table public.todos enable row level security;
+
+create policy "td read own"     on public.todos for select
+  using (auth.uid() = user_id);
+create policy "td read partner" on public.todos for select
+  using (user_id = private.my_partner());
+create policy "td write own"    on public.todos for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id and private.my_role() = 'her');
+
+create index todos_user_created_idx on public.todos (user_id, created_at desc);
+
+-- ---- realtime for Stage 2 tables ----
+do $$ begin
+  if not exists (select 1 from pg_publication_tables
+                 where pubname='supabase_realtime' and schemaname='public' and tablename='cycle_settings') then
+    alter publication supabase_realtime add table public.cycle_settings;
+  end if;
+  if not exists (select 1 from pg_publication_tables
+                 where pubname='supabase_realtime' and schemaname='public' and tablename='period_starts') then
+    alter publication supabase_realtime add table public.period_starts;
+  end if;
+  if not exists (select 1 from pg_publication_tables
+                 where pubname='supabase_realtime' and schemaname='public' and tablename='todos') then
+    alter publication supabase_realtime add table public.todos;
   end if;
 end $$;

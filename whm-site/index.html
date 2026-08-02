@@ -6,6 +6,8 @@
   <meta name="theme-color" content="#4F6E4A" />
   <title>What's Her Mood</title>
   <link rel="stylesheet" href="css/shared.css" />
+  <link rel="stylesheet" href="css/mascot.css" />
+  <link rel="stylesheet" href="css/effects.css" />
   <link rel="stylesheet" href="css/auth.css" />
   <link rel="stylesheet" href="css/tracker.css" />
   <link rel="stylesheet" href="css/hangout.css" />
@@ -33,16 +35,25 @@
     </section>
 
     <section id="screen-welcome" class="screen center" hidden>
-      <div class="card">
-        <h1 class="logo-big serif">What's Her Mood</h1>
-        <p class="logo-sub hand">a cozy little field manual, now for two</p>
-        <p class="muted">
-          A private space for the two of you. She tracks her cycle and to-dos;
-          he gets a gentle read on the day. First, make your account.
-        </p>
-        <div class="stack">
-          <button id="go-signup" class="btn-primary">create an account</button>
-          <button id="go-signin" class="btn-ghost">I already have one</button>
+      <div class="card card-welcome">
+        <div class="welcome-blob welcome-blob-a" aria-hidden="true"></div>
+        <div class="welcome-blob welcome-blob-b" aria-hidden="true"></div>
+        <div class="welcome-inner">
+          <div id="welcome-mascot" class="mascot-slot"></div>
+          <h1 class="logo-big serif">What's Her Mood</h1>
+          <p class="logo-sub hand">a cozy little field manual, now for two</p>
+          <p class="muted">
+            A private space for the two of you. She tracks her cycle and to-dos;
+            he gets a gentle read on the day. First, make your account.
+          </p>
+          <div class="stack">
+            <button id="go-signup" class="btn-primary btn-lift">create an account</button>
+            <button id="go-signin" class="btn-ghost">I already have one</button>
+          </div>
+          <p class="welcome-note hand">
+            <span class="welcome-note-dot" aria-hidden="true"></span>
+            made with care for two people
+          </p>
         </div>
       </div>
     </section>
@@ -87,9 +98,11 @@
           <button id="signout-btn" class="btn-link">sign out</button>
         </div>
         <div id="code-card" class="code-card">
+          <span class="code-card-flower hand" aria-hidden="true">✿</span>
           <p class="muted">your pairing code</p>
           <p id="my-code" class="code-big">——————</p>
           <p class="muted small">share this with your partner so they can link to you</p>
+          <button id="copy-code" type="button" class="btn-copy">copy code</button>
         </div>
         <form id="pair-form" class="pair-box" hidden>
           <label class="field"><span>enter the code they shared with you</span>
@@ -99,9 +112,12 @@
           <button id="link-btn" type="submit" class="btn-primary">link accounts</button>
         </form>
         <div id="paired-box" class="paired-box" hidden>
-          <p class="paired-line serif">you're paired with <span id="partner-name">your partner</span> ♡</p>
+          <div class="paired-header">
+            <div id="paired-mascot" class="mascot-slot"></div>
+            <p class="paired-line serif">you're paired with <span id="partner-name">your partner</span> <span class="paired-heart">♡</span></p>
+          </div>
           <div id="tracker" hidden></div>
-          <button id="start-hangout" class="btn-primary">start a hangout →</button>
+          <button id="start-hangout" class="btn-primary btn-lift">start a hangout →</button>
           <p class="muted small">video call, screen share &amp; chat — just the two of you.</p>
         </div>
       </div>
@@ -111,6 +127,7 @@
       <div class="hg-head">
         <div>
           <p class="hg-title serif">hangout</p>
+          <p class="hg-sub hand">just the two of you ✿</p>
           <p class="muted small"><span id="hg-status">…</span></p>
         </div>
         <button id="hg-hangup" class="btn-link hg-leave">leave</button>
@@ -126,11 +143,14 @@
           <span id="hg-local-mute" class="hg-mute-badge">muted</span>
         </div>
         <p class="hg-with hand">with <span id="hg-partner">your partner</span></p>
+        <span class="hg-twinkle hg-twinkle-a" aria-hidden="true"></span>
+        <span class="hg-twinkle hg-twinkle-b" aria-hidden="true"></span>
+        <span class="hg-twinkle hg-twinkle-c" aria-hidden="true"></span>
       </div>
       <div class="hg-controls">
-        <button id="hg-mic" class="hg-ctl" data-off="0">mic on</button>
-        <button id="hg-cam" class="hg-ctl" data-off="0">camera on</button>
-        <button id="hg-screen" class="hg-ctl">share screen</button>
+        <button id="hg-mic" class="hg-ctl" data-off="0"><span class="hg-dot"></span><span class="hg-ctl-label">mic on</span></button>
+        <button id="hg-cam" class="hg-ctl" data-off="0"><span class="hg-dot"></span><span class="hg-ctl-label">camera on</span></button>
+        <button id="hg-screen" class="hg-ctl"><span class="hg-dot"></span><span class="hg-ctl-label">share screen</span></button>
         <label class="hg-vol" title="shared-audio volume">
           <span class="hg-vol-label">shared audio</span>
           <input id="hg-vol-input" type="range" min="0" max="1" step="0.02" value="1" />

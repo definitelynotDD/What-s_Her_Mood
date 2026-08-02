@@ -4,21 +4,45 @@
    Same sage/cream/paper tokens as the rest of the app.
    ============================================================ */
 
-#tracker { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; }
+#tracker {
+  display: flex; flex-direction: column; gap: 12px;
+  margin-top: 4px;
+  position: relative;                /* effect layers pin to this */
+}
 #tracker[hidden] { display: none; }
+
+/* ---- header row: mascot + heading ---- */
+.tr-head {
+  display: flex; align-items: center; gap: 4px;
+  padding: 0 2px;
+}
+.tr-head-mascot {
+  flex: 0 0 auto;
+  margin: -18px 0 -18px -6px;         /* pull the sway in tight */
+}
+.tr-head-text { flex: 1; text-align: left; }
 .tr-title {
-  margin: 6px 0 2px;
+  margin: 0;
   font-size: 22px;
+  font-weight: 600;
   color: var(--pri-ink);
-  text-align: left;
+}
+.tr-title-sub {
+  margin: 2px 0 0;
+  font-size: 18px;
+  color: var(--pri);
 }
 .tr-card {
   background: var(--paper);
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: 18px;
   padding: 16px 14px;
   display: flex; flex-direction: column; gap: 10px;
   text-align: left;
+}
+.cycle-card {
+  /* soft gradient hint for the cycle card only */
+  background: linear-gradient(180deg, var(--paper) 0%, var(--cream-2) 130%);
 }
 .tr-h3 { margin: 0; font-size: 15px; font-weight: 700; color: var(--pri-ink); }
 
@@ -39,14 +63,45 @@
 .cycle-phase-pill[data-hue="plum"]  { background: var(--plum-soft);  color: var(--plum-ink); }
 .cycle-phase-pill[data-hue="muted"] { background: var(--cream-2);    color: var(--ink-soft); }
 
-.cycle-summary { display: flex; flex-direction: column; gap: 2px; }
-.cycle-day {
-  margin: 0;
-  font-size: 26px;
-  color: var(--pri-ink);
-  line-height: 1.1;
+/* ---- cycle ring + phase summary ---- */
+.cycle-body {
+  display: flex; align-items: center; gap: 14px;
 }
-.cycle-note { margin: 0; font-size: 13.5px; }
+.cycle-ring {
+  position: relative;
+  flex: 0 0 auto;
+  width: 96px; height: 96px;
+}
+.cycle-ring-svg {
+  width: 100%; height: 100%;
+  transform: rotate(-90deg);
+}
+.cycle-ring-center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.cycle-day-num {
+  margin: 0;
+  font: 600 26px/1 'Fraunces', Georgia, serif;
+  color: var(--pri-ink);
+}
+.cycle-day-of {
+  margin: 0;
+  font-size: 10.5px;
+  color: var(--ink-soft);
+  letter-spacing: .06em;
+}
+.cycle-body-text {
+  flex: 1;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.cycle-phase-name {
+  margin: 0;
+  font-size: 19px;
+  color: var(--pri-ink);
+}
+.cycle-note { margin: 0; font-size: 13.5px; line-height: 1.45; }
 .cycle-overdue {
   margin: 2px 0 0;
   color: var(--rust-ink);
@@ -182,8 +237,9 @@ details[open] > .cycle-tune-sum::before { content: "▾  "; }
   content: "";
   width: 6px; height: 11px;
   border: solid #fff;
-  border-width: 0 2px 2px 0;
+  border-width: 0 2.5px 2.5px 0;
   transform: rotate(45deg) translateY(-1px);
+  animation: popIn .3s cubic-bezier(.3, .7, .4, 1.4);
 }
 .todo-text {
   font: 500 15px 'Nunito', system-ui, sans-serif;

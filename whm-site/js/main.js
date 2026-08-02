@@ -5,6 +5,7 @@ import {
 import { watchMyUserRow, claimPartnerCode } from "./pairing.js";
 import { openHangout, closeHangout } from "./hangout.js";
 import { mountTracker, unmountTracker } from "./tracker.js";
+import { mountMascot } from "./mascot.js";
 
 const $ = (sel) => document.querySelector(sel);
 const show = (el) => { if (el) el.hidden = false; };
@@ -58,6 +59,7 @@ async function renderUserRow(row) {
     $("#partner-name").textContent = partnerName;
     currentPairing = { me: row.id, partner: row.paired_with, myName: row.display_name, partnerName };
     show($("#paired-box"));
+    mountMascot($("#paired-mascot"), { scale: 0.55 });
     // Stage 2: mount her's daily dashboard (cycle + todos). Both partners see it;
     // the tracker figures out edit vs. read-only from role. herUid = whichever
     // one of the two is 'her'.
@@ -85,8 +87,31 @@ watchAuth((user) => {
   unsubUserRow = watchMyUserRow(user.id, (row) => renderUserRow(row));
 });
 
+// stamp the mascot onto every slot that exists (welcome + paired-box header)
+mountMascot($("#welcome-mascot"), { scale: 1 });
+
 $("#go-signup").addEventListener("click", () => { setMsg($("#signup-error"), ""); showScreen("signup"); });
 $("#go-signin").addEventListener("click", () => { setMsg($("#signin-error"), ""); showScreen("signin"); });
+
+// copy the pairing code to the clipboard; label flips to "copied ✓" for 1.4s
+$("#copy-code").addEventListener("click", async () => {
+  const btn = $("#copy-code");
+  const code = ($("#my-code").textContent || "").trim();
+  if (!code || code.startsWith("——")) return;
+  try {
+    await navigator.clipboard.writeText(code);
+  } catch (_) {
+    // fallback: transient input for browsers without clipboard permission
+    const ta = document.createElement("textarea");
+    ta.value = code; document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); } catch (_) {}
+    ta.remove();
+  }
+  btn.textContent = "copied ✓";
+  btn.dataset.copied = "1";
+  clearTimeout(btn._t);
+  btn._t = setTimeout(() => { btn.textContent = "copy code"; delete btn.dataset.copied; }, 1400);
+});
 document.querySelectorAll("[data-go='welcome']").forEach((b) =>
   b.addEventListener("click", () => showScreen("welcome"))
 );

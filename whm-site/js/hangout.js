@@ -10,6 +10,7 @@
 // ─────────────────────────────────────────────────────────────
 import { supabase } from "./supabase-init.js";
 import { createPeer } from "./rtc.js";
+import { spawnHearts } from "./effects.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -179,12 +180,16 @@ function wireControls() {
   const mic = $("hg-mic"), cam = $("hg-cam"), scr = $("hg-screen"), bye = $("hg-hangup");
   const form = $("hg-chat-form"), input = $("hg-chat-input");
 
+  const setLabel = (btn, text) => {
+    const lbl = btn.querySelector(".hg-ctl-label");
+    if (lbl) lbl.textContent = text; else btn.textContent = text;
+  };
   mic.onclick = () => {
     const tr = room.localStream.getAudioTracks()[0]; if (!tr) return;
     tr.enabled = !tr.enabled;
     const muted = !tr.enabled;
     mic.dataset.off = muted ? "1" : "0";
-    mic.textContent = muted ? "mic off" : "mic on";
+    setLabel(mic, muted ? "mic off" : "mic on");
     // pill on our own PIP so we can see we're muted
     $("hg-local-mute").dataset.on = muted ? "1" : "0";
     // and let partner know so their view of us shows the pill too
@@ -194,7 +199,7 @@ function wireControls() {
     const tr = room.localStream.getVideoTracks()[0]; if (!tr) return;
     tr.enabled = !tr.enabled;
     cam.dataset.off = tr.enabled ? "0" : "1";
-    cam.textContent = tr.enabled ? "camera on" : "camera off";
+    setLabel(cam, tr.enabled ? "camera on" : "camera off");
   };
   scr.onclick = () => (room.screenStream ? stopScreen() : startScreen());
   bye.onclick = () => closeHangout();
@@ -215,6 +220,16 @@ function wireControls() {
     addChat(text, "me");
     input.value = "";
   };
+
+  // Floating hearts: tap the stage, get 6 hearts floating up. Guard against
+  // the click coming from the local PIP / mute pill / screen slot (buttons
+  // fire pointerdown too and we don't want a heart when someone drags).
+  const stage = $("hg-stage");
+  if (stage) {
+    const onDown = (e) => spawnHearts(stage, e);
+    stage.addEventListener("mousedown", onDown);
+    stage.addEventListener("touchstart", onDown, { passive: true });
+  }
 }
 
 async function startScreen() {
@@ -248,8 +263,10 @@ async function startScreen() {
   const p = scv.play && scv.play(); if (p && typeof p.catch === "function") p.catch(() => {});
   $("hg-stage").classList.add("sharing");
 
-  $("hg-screen").textContent = "stop sharing";
-  $("hg-screen").dataset.on = "1";
+  const screenBtn = $("hg-screen");
+  const scrLbl = screenBtn.querySelector(".hg-ctl-label");
+  if (scrLbl) scrLbl.textContent = "sharing screen"; else screenBtn.textContent = "sharing screen";
+  screenBtn.dataset.on = "1";
 
   // Native "Stop sharing" bar → treat as our stop.
   screenTrack.onended = () => stopScreen();
@@ -275,8 +292,10 @@ async function stopScreen() {
   if (scv) scv.srcObject = null;
   $("hg-stage").classList.remove("sharing");
 
-  $("hg-screen").textContent = "share screen";
-  $("hg-screen").dataset.on = "0";
+  const screenBtn = $("hg-screen");
+  const scrLbl = screenBtn.querySelector(".hg-ctl-label");
+  if (scrLbl) scrLbl.textContent = "share screen"; else screenBtn.textContent = "share screen";
+  screenBtn.dataset.on = "0";
 }
 
 export function closeHangout() {

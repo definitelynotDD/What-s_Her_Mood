@@ -13,6 +13,8 @@ import {
 import {
   watchTodos, addTodo, toggleTodo, editTodo, deleteTodo,
 } from "./todos.js";
+import { mountMascot } from "./mascot.js";
+import { spawnConfetti } from "./effects.js";
 
 const $ = (sel, root) => (root || document).querySelector(sel);
 const el = (tag, cls, txt) => {
@@ -34,8 +36,17 @@ export function mountTracker({ myUid, myRole, herUid, herName }) {
 
   const iAmHer = myRole === "her";
   const heading = iAmHer ? "your day" : `${herName || "her"}'s day`;
-  const head = el("h2", "tr-title serif", heading);
-  host.appendChild(head);
+  const headWrap = el("div", "tr-head");
+  const mascotSlot = el("div", "mascot-slot tr-head-mascot");
+  const headText = el("div", "tr-head-text");
+  const title = el("p", "tr-title serif", heading);
+  const sub = el("p", "tr-title-sub hand", iAmHer ? "one gentle day at a time" : "check in gently");
+  headText.appendChild(title);
+  headText.appendChild(sub);
+  headWrap.appendChild(mascotSlot);
+  headWrap.appendChild(headText);
+  host.appendChild(headWrap);
+  mountMascot(mascotSlot, { scale: 0.5 });
 
   const cycleCard = renderCycleCard({ iAmHer, herName });
   const todosCard = renderTodosCard({ iAmHer, herName });
@@ -64,7 +75,6 @@ export function unmountTracker() {
 function renderCycleCard({ iAmHer, herName }) {
   const card = el("div", "tr-card cycle-card");
   const phasePill = el("span", "cycle-phase-pill", "…");
-  const phaseLine = el("p", "cycle-day serif", "—");
   const noteLine  = el("p", "cycle-note muted", "");
   const overdueLine = el("p", "cycle-overdue hand", "");
   overdueLine.hidden = true;
@@ -74,13 +84,34 @@ function renderCycleCard({ iAmHer, herName }) {
   header.appendChild(title);
   header.appendChild(phasePill);
 
-  const summary = el("div", "cycle-summary");
-  summary.appendChild(phaseLine);
-  summary.appendChild(noteLine);
-  summary.appendChild(overdueLine);
+  // ring + copy sit side-by-side
+  const body = el("div", "cycle-body");
+  const ringWrap = el("div", "cycle-ring");
+  ringWrap.innerHTML = `
+    <svg viewBox="0 0 100 100" class="cycle-ring-svg" aria-hidden="true">
+      <circle cx="50" cy="50" r="42" fill="none" stroke="var(--cream-2)" stroke-width="8"></circle>
+      <circle class="cycle-ring-fill" cx="50" cy="50" r="42" fill="none"
+              stroke="var(--pri)" stroke-width="8" stroke-linecap="round"
+              stroke-dasharray="264" stroke-dashoffset="264"></circle>
+    </svg>
+    <div class="cycle-ring-center">
+      <p class="cycle-day-num serif">—</p>
+      <p class="cycle-day-of muted">of —</p>
+    </div>`;
+  const ringFill = ringWrap.querySelector(".cycle-ring-fill");
+  const ringDayNum = ringWrap.querySelector(".cycle-day-num");
+  const ringDayOf  = ringWrap.querySelector(".cycle-day-of");
+
+  const bodyText = el("div", "cycle-body-text");
+  const phaseName = el("p", "cycle-phase-name serif", "—");
+  bodyText.appendChild(phaseName);
+  bodyText.appendChild(noteLine);
+  bodyText.appendChild(overdueLine);
+  body.appendChild(ringWrap);
+  body.appendChild(bodyText);
 
   card.appendChild(header);
-  card.appendChild(summary);
+  card.appendChild(body);
 
   let logForm, logInput, logBtn, tuneWrap, cycleInput, periodInput, saveBtn,
       historyWrap, historyList, historyToggle, historyOpen = false;
@@ -141,12 +172,31 @@ function renderCycleCard({ iAmHer, herName }) {
       const p = currentPhase(settings, starts);
       phasePill.textContent = p.label;
       phasePill.dataset.hue = p.hue;
+      // ring + centered day — set the SVG dashoffset from day/cycleLength.
+      // stroke-dasharray is 264 (2π·42, matching the design), so offset =
+      // 264 * (1 - fraction).
+      const CIRC = 264;
+      ringFill.setAttribute("stroke", ringStroke(p.hue));
       if (p.day == null) {
-        phaseLine.textContent = "no data yet";
+        ringDayNum.textContent = "—";
+        ringDayOf.textContent  = "log a start";
+        ringFill.style.strokeDashoffset = String(CIRC);
+        phaseName.textContent = "no data yet";
         noteLine.textContent = iAmHer ? "log your last period start below." : "waiting on her to log a start.";
         overdueLine.hidden = true;
       } else {
-        phaseLine.textContent = `day ${p.day} of ${p.cycleLength}`;
+        const frac = Math.max(0, Math.min(1, p.day / p.cycleLength));
+        const target = Math.round(CIRC * (1 - frac));
+        // stamp a fresh drawIn animation each render so the ring re-fills
+        ringFill.style.setProperty("--dash-target", target);
+        ringFill.style.animation = "none";
+        // eslint-disable-next-line no-unused-expressions
+        void ringFill.offsetWidth;
+        ringFill.style.animation = "drawIn 1.8s cubic-bezier(.4,0,.2,1) forwards";
+        ringFill.style.strokeDashoffset = String(target);
+        ringDayNum.textContent = String(p.day);
+        ringDayOf.textContent  = `of ${p.cycleLength}`;
+        phaseName.textContent = p.label + " phase";
         noteLine.textContent = p.note;
         if (p.overdue) {
           overdueLine.textContent = "cycle looks overdue — log the next start when it arrives.";
@@ -277,7 +327,16 @@ function renderTodoRow(row, iAmHer, err) {
   if (iAmHer) {
     check.addEventListener("click", async () => {
       check.disabled = true;
-      try { await toggleTodo(row.id, !row.done); }
+      const wasDone = row.done;
+      try {
+        await toggleTodo(row.id, !row.done);
+        // Confetti only on undone → done. Spawn inside the tracker host so
+        // pieces can fly across both cards without a clip.
+        if (!wasDone) {
+          const host = document.getElementById("tracker");
+          if (host) spawnConfetti(host, check);
+        }
+      }
       catch (e) { showErr(err, e); check.disabled = false; }
     });
   }
@@ -313,4 +372,16 @@ function renderTodoRow(row, iAmHer, err) {
 function showErr(node, e) {
   node.textContent = (e && e.message) ? e.message : "Something went wrong.";
   node.hidden = false;
+}
+
+// Ring stroke color per phase — same "hue" tokens the pill uses.
+function ringStroke(hue) {
+  switch (hue) {
+    case "rust":  return "var(--rust)";
+    case "teal":  return "var(--teal)";
+    case "honey": return "var(--honey)";
+    case "plum":  return "var(--plum)";
+    case "muted": return "var(--ink-soft)";
+    default:      return "var(--pri)";
+  }
 }

@@ -1,0 +1,69 @@
+/* ============================================================
+   WHM — mascot.css
+   The sage-sprout mascot. Built only from circles + one leaf oval.
+   Rescale by setting `--mascot-scale` on .mascot (default 1).
+   ============================================================ */
+
+.mascot {
+  position: relative;
+  width: calc(120px * var(--mascot-scale, 1));
+  height: calc(120px * var(--mascot-scale, 1));
+  animation: sway 4s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
+
+.mascot-leaf {
+  position: absolute;
+  left: 50%; top: -5%;
+  width: 28%; height: 18%;
+  margin-left: -14%;
+  background: var(--pri);
+  border-radius: 80% 20% 80% 20% / 60% 40% 60% 40%;
+  transform-origin: 50% 90%;
+  animation: leafWiggle 3s ease-in-out infinite;
+}
+
+.mascot-body {
+  position: absolute;
+  inset: 7%;
+  background: radial-gradient(circle at 40% 35%, #B3D0A8 0%, var(--pri) 75%);
+  border-radius: 50%;
+  box-shadow:
+    inset -6px -8px 16px rgba(42, 63, 38, 0.35),
+    0 12px 24px rgba(79, 110, 74, 0.28);
+}
+
+.mascot-cheek {
+  position: absolute;
+  top: 58%;
+  width: 14%; height: 9%;
+  background: #E08A7A;
+  border-radius: 50%;
+  opacity: 0.55;
+}
+.mascot-cheek-l { left: 22%; }
+.mascot-cheek-r { right: 22%; }
+
+.mascot-eye {
+  position: absolute;
+  top: 46%;
+  width: 7%; height: 10%;
+  background: var(--pri-ink);
+  border-radius: 50%;
+  animation: blink 5s infinite;
+  transform-origin: center;
+}
+.mascot-eye-l { left: 35%; }
+.mascot-eye-r { right: 35%; }
+
+.mascot-mouth {
+  position: absolute;
+  left: 50%; top: 65%;
+  width: 12%; height: 6.5%;
+  margin-left: -6%;
+  border-bottom: 2.5px solid var(--pri-ink);
+  border-radius: 0 0 20px 20px;
+}
+
+/* mascot slot helpers (where main.js / tracker.js drop it) */
+.mascot-slot { display: inline-flex; align-items: center; justify-content: center; }

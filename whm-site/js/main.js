@@ -46,6 +46,7 @@ async function renderUserRow(row) {
   $("#hello-name").textContent = row.display_name || "you";
   $("#role-pill").textContent = row.role === "her" ? "her" : "her partner";
   $("#my-code").textContent = row.pairing_code || "——————";
+  hide($("#code-card"));
   hide($("#pair-form"));
   hide($("#paired-box"));
   if (row.paired_with) {
@@ -66,6 +67,7 @@ async function renderUserRow(row) {
   } else {
     currentPairing = null;
     unmountTracker();
+    show($("#code-card"));
     show($("#pair-form"));
   }
 }

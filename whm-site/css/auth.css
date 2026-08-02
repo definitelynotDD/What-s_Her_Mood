@@ -162,6 +162,9 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
   color: var(--pri);
 }
 .pair-box, .paired-box { display: flex; flex-direction: column; gap: 12px; }
+/* Explicit override — .pair-box's `display: flex` beats the UA `[hidden]{display:none}`
+   rule on specificity, so hide() from JS was silently no-op'ing this element. */
+.pair-box[hidden], .paired-box[hidden], .code-card[hidden] { display: none; }
 #partner-code {
   text-align: center;
   letter-spacing: .22em;

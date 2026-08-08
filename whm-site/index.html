@@ -15,6 +15,15 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
 </head>
 <body>
+  <header id="app-header" class="app-header" hidden>
+    <p class="app-header-kicker hand">a cozy field manual, now with more pulse</p>
+    <h1 class="app-title serif">What's Her Mood <span class="app-title-tag">— cuter</span></h1>
+    <nav id="app-tabs" class="app-tabs" aria-label="sections" hidden>
+      <button type="button" class="app-tab is-on" data-tab="pair">pair up ♡</button>
+      <button type="button" class="app-tab" data-tab="today">today</button>
+      <button type="button" class="app-tab" data-tab="hangout">cozy room</button>
+    </nav>
+  </header>
   <main class="wrap">
 
     <section id="screen-setup" class="screen setup-error" hidden>
@@ -40,11 +49,11 @@
         <div class="welcome-blob welcome-blob-b" aria-hidden="true"></div>
         <div class="welcome-inner">
           <div id="welcome-mascot" class="mascot-slot"></div>
-          <h1 class="logo-big serif">What's Her Mood</h1>
+          <h2 class="logo-big serif">What's Her Mood</h2>
           <p class="logo-sub hand">a cozy little field manual, now for two</p>
           <p class="muted">
-            A private space for the two of you. She tracks her cycle and to-dos;
-            he gets a gentle read on the day. First, make your account.
+            A private space for the two of you.<br>
+            She tracks her cycle and to-dos; he gets a gentle read on the day.
           </p>
           <div class="stack">
             <button id="go-signup" class="btn-primary btn-lift">create an account</button>
@@ -97,28 +106,34 @@
           <p class="muted">hey <span id="hello-name">you</span> <span id="role-pill" class="pill">her partner</span></p>
           <button id="signout-btn" class="btn-link">sign out</button>
         </div>
-        <div id="code-card" class="code-card">
-          <span class="code-card-flower hand" aria-hidden="true">✿</span>
-          <p class="muted">your pairing code</p>
-          <p id="my-code" class="code-big">——————</p>
-          <p class="muted small">share this with your partner so they can link to you</p>
-          <button id="copy-code" type="button" class="btn-copy">copy code</button>
-        </div>
-        <form id="pair-form" class="pair-box" hidden>
-          <label class="field"><span>enter the code they shared with you</span>
-            <input id="partner-code" type="text" inputmode="latin" autocapitalize="characters"
-                   autocomplete="off" spellcheck="false" maxlength="6" placeholder="ABC123" /></label>
-          <p id="pair-error" class="form-error" role="alert" hidden></p>
-          <button id="link-btn" type="submit" class="btn-primary">link accounts</button>
-        </form>
-        <div id="paired-box" class="paired-box" hidden>
-          <div class="paired-header">
-            <div id="paired-mascot" class="mascot-slot"></div>
-            <p class="paired-line serif">you're paired with <span id="partner-name">your partner</span> <span class="paired-heart">♡</span></p>
+
+        <div id="subview-pair" class="app-subview">
+          <div id="code-card" class="code-card">
+            <span class="code-card-flower hand" aria-hidden="true">✿</span>
+            <p class="muted">your pairing code</p>
+            <p id="my-code" class="code-big">——————</p>
+            <p class="muted small">share this with your partner so they can link to you</p>
+            <button id="copy-code" type="button" class="btn-copy">copy code</button>
           </div>
-          <div id="tracker" hidden></div>
+          <form id="pair-form" class="pair-box" hidden>
+            <label class="field"><span>enter the code they shared with you</span>
+              <input id="partner-code" type="text" inputmode="latin" autocapitalize="characters"
+                     autocomplete="off" spellcheck="false" maxlength="6" placeholder="ABC123" /></label>
+            <p id="pair-error" class="form-error" role="alert" hidden></p>
+            <button id="link-btn" type="submit" class="btn-primary">link accounts</button>
+          </form>
+          <div id="paired-box" class="paired-box" hidden>
+            <div class="paired-header">
+              <div id="paired-mascot" class="mascot-slot"></div>
+              <p class="paired-line serif">you're paired with <span id="partner-name">your partner</span> <span class="paired-heart">♡</span></p>
+            </div>
+          </div>
+        </div>
+
+        <div id="subview-today" class="app-subview" hidden>
+          <div id="tracker"></div>
           <button id="start-hangout" class="btn-primary btn-lift">start a hangout →</button>
-          <p class="muted small">video call, screen share &amp; chat — just the two of you.</p>
+          <p class="muted small tagline-hangout">video call, screen share &amp; chat — just the two of you.</p>
         </div>
       </div>
     </section>

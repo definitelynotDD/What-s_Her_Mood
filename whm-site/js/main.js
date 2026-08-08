@@ -12,10 +12,30 @@ const show = (el) => { if (el) el.hidden = false; };
 const hide = (el) => { if (el) el.hidden = true; };
 
 const SCREENS = ["loading", "welcome", "signup", "signin", "app", "hangout"];
+let currentScreen = "loading";
+let activeSubview = "pair";                    // 'pair' | 'today'  (only meaningful inside #screen-app)
 function showScreen(name) {
+  currentScreen = name;
   SCREENS.forEach((s) => {
     const el = document.getElementById("screen-" + s);
     if (el) el.hidden = (s !== name);
+  });
+  // The global banner + tabs live outside .wrap. Banner hides on hangout
+  // (the video stage is its own headline); tabs are gated to signed-in + paired
+  // and only make sense while the app screen is showing.
+  const header = document.getElementById("app-header");
+  const tabs = document.getElementById("app-tabs");
+  if (header) header.hidden = (name === "hangout" || name === "loading");
+  if (tabs) tabs.hidden = !(name === "app" && !!currentPairing);
+}
+function setSubview(name) {
+  activeSubview = name;
+  const pair = document.getElementById("subview-pair");
+  const today = document.getElementById("subview-today");
+  if (pair) pair.hidden = (name !== "pair");
+  if (today) today.hidden = (name !== "today");
+  document.querySelectorAll(".app-tab").forEach((b) => {
+    b.classList.toggle("is-on", b.dataset.tab === name);
   });
 }
 function setMsg(el, msg, kind) {
@@ -44,10 +64,13 @@ function stopUserRowWatch() {
 
 async function renderUserRow(row) {
   if (!row) return;
+  const wasPaired = !!currentPairing;
   $("#hello-name").textContent = row.display_name || "you";
   $("#role-pill").textContent = row.role === "her" ? "her" : "her partner";
   $("#my-code").textContent = row.pairing_code || "——————";
-  hide($("#code-card"));
+  // Code card stays visible always (paired partners can still re-share). Pair-form
+  // and paired-header flip based on paired-ness.
+  show($("#code-card"));
   hide($("#pair-form"));
   hide($("#paired-box"));
   if (row.paired_with) {
@@ -69,9 +92,14 @@ async function renderUserRow(row) {
   } else {
     currentPairing = null;
     unmountTracker();
-    show($("#code-card"));
     show($("#pair-form"));
   }
+  // On the moment we FIRST become paired, land on the pair-up sub-view so the
+  // "you're paired with dev ♡" line gets its beat. On unpair, snap back to pair.
+  if (!wasPaired && currentPairing) setSubview("pair");
+  if (wasPaired && !currentPairing)  setSubview("pair");
+  // Tabs are gated on paired-ness; re-evaluate the chrome now that state changed.
+  showScreen(currentScreen);
 }
 
 watchAuth((user) => {
@@ -89,6 +117,21 @@ watchAuth((user) => {
 
 // stamp the mascot onto every slot that exists (welcome + paired-box header)
 mountMascot($("#welcome-mascot"), { scale: 1 });
+
+// Tab bar (shown only when signed-in AND paired — see showScreen). "pair" and
+// "today" flip in-place sub-views; "hangout" jumps to the full-screen video.
+document.querySelectorAll(".app-tab").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const tab = btn.dataset.tab;
+    if (tab === "hangout") {
+      if (!currentPairing) return;
+      showScreen("hangout");
+      openHangout({ ...currentPairing, onExit: () => { showScreen("app"); setSubview(activeSubview); } });
+      return;
+    }
+    setSubview(tab);
+  });
+});
 
 $("#go-signup").addEventListener("click", () => { setMsg($("#signup-error"), ""); showScreen("signup"); });
 $("#go-signin").addEventListener("click", () => { setMsg($("#signin-error"), ""); showScreen("signin"); });

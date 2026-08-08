@@ -13,6 +13,75 @@
   padding: 24px 18px calc(24px + env(safe-area-inset-bottom));
 }
 
+/* ---- global app header (kicker + big title + tabs) ---- */
+.app-header {
+  position: relative;
+  z-index: 1;
+  padding: 26px 20px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+.app-header[hidden] { display: none; }
+.app-header-kicker {
+  margin: 0;
+  font-size: 22px;
+  color: var(--pri);
+  letter-spacing: .02em;
+}
+.app-title {
+  margin: 0;
+  font-weight: 600;
+  font-size: clamp(30px, 5.4vw, 44px);
+  color: var(--pri-ink);
+  letter-spacing: -.01em;
+  line-height: 1.1;
+}
+.app-title-tag {
+  font-style: italic;
+  color: var(--pri);
+  font-weight: 500;
+}
+.app-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 2px;
+}
+.app-tabs[hidden] { display: none; }
+.app-tab {
+  appearance: none;
+  padding: 9px 16px;
+  border-radius: 999px;
+  font: 600 14px 'Nunito', system-ui, sans-serif;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--pri-ink);
+  transition: transform .18s cubic-bezier(.3,.7,.4,1.4),
+              box-shadow .18s cubic-bezier(.3,.7,.4,1.4),
+              background .18s, color .18s, border-color .18s;
+}
+.app-tab:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(42,36,24,.08); }
+.app-tab:active { transform: translateY(0); }
+.app-tab.is-on {
+  background: var(--pri);
+  color: #fff;
+  border-color: var(--pri);
+  box-shadow: 0 8px 18px rgba(79,110,74,.28);
+}
+.app-tab:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(79,110,74,.24);
+}
+
+/* ---- app sub-view visibility (tab-switched panels inside #screen-app) ---- */
+.app-subview { display: flex; flex-direction: column; gap: 14px; }
+.app-subview[hidden] { display: none; }
+
 .screen { width: 100%; }
 .screen[hidden] { display: none; }
 .center { display: grid; place-items: center; }

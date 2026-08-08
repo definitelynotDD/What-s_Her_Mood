@@ -174,6 +174,88 @@ details[open] > .cycle-tune-sum::before { content: "▾  "; }
 .cycle-hist-rm { color: var(--rust-ink); font-size: 12px; }
 .cycle-hist-empty { padding: 4px 2px; }
 
+/* ---- wise-words card ---- */
+.wise-card {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--paper) 0%, var(--cream-2) 100%);
+  border: 1px solid var(--line);
+  padding: 16px 16px 18px;
+  gap: 8px;
+}
+/* subtle color wash tinted by the phase — swap the corner blob's hue */
+.wise-card::after {
+  content: "";
+  position: absolute;
+  top: -50px; right: -50px;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  background: var(--pri-soft);
+  filter: blur(8px);
+  opacity: 0.55;
+  pointer-events: none;
+  transition: background .4s ease;
+  z-index: 0;
+}
+.wise-card[data-hue="rust"]::after  { background: var(--rust-soft); }
+.wise-card[data-hue="teal"]::after  { background: var(--teal-soft); }
+.wise-card[data-hue="honey"]::after { background: var(--honey-soft); }
+.wise-card[data-hue="plum"]::after  { background: var(--plum-soft); }
+.wise-card[data-hue="muted"]::after { background: var(--cream-2); }
+.wise-card > * { position: relative; z-index: 1; }
+
+.wise-flower {
+  position: absolute;
+  top: 10px; right: 14px;
+  font-size: 20px;
+  color: var(--pri);
+  opacity: 0.8;
+  animation: sway 5s ease-in-out infinite;
+  transform-origin: 50% 90%;
+  z-index: 2;
+  pointer-events: none;
+}
+.wise-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-right: 26px;  /* leave room for the corner flower */
+}
+.wise-kicker {
+  margin: 0;
+  font-size: 18px;
+  color: var(--pri);
+  letter-spacing: .01em;
+}
+.wise-phase-pill {
+  padding: 3px 12px;
+  border-radius: 999px;
+  font: 700 12px 'Nunito', system-ui, sans-serif;
+  letter-spacing: .02em;
+  background: var(--pri-soft);
+  color: var(--pri-ink);
+  text-transform: lowercase;
+}
+.wise-phase-pill[data-hue="rust"]  { background: var(--rust-soft);  color: var(--rust-ink); }
+.wise-phase-pill[data-hue="teal"]  { background: var(--teal-soft);  color: var(--teal-ink); }
+.wise-phase-pill[data-hue="honey"] { background: var(--honey-soft); color: var(--honey-ink); }
+.wise-phase-pill[data-hue="plum"]  { background: var(--plum-soft);  color: var(--plum-ink); }
+.wise-phase-pill[data-hue="muted"] { background: var(--cream-2);    color: var(--ink-soft); }
+.wise-title {
+  margin: 2px 0 0;
+  font: 600 22px/1.15 'Fraunces', Georgia, serif;
+  color: var(--pri-ink);
+  letter-spacing: -0.005em;
+  animation: popIn .4s cubic-bezier(.3, .7, .4, 1.4);
+}
+.wise-body {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink);
+}
+
 /* ---- todos card ---- */
 .todos-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .todos-count-pill {

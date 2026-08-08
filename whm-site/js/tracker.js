@@ -15,6 +15,7 @@ import {
 } from "./todos.js";
 import { mountMascot } from "./mascot.js";
 import { spawnConfetti } from "./effects.js";
+import { pickWiseWord } from "./wise-words.js";
 
 const $ = (sel, root) => (root || document).querySelector(sel);
 const el = (tag, cls, txt) => {
@@ -49,12 +50,15 @@ export function mountTracker({ myUid, myRole, herUid, herName }) {
   mountMascot(mascotSlot, { scale: 0.5 });
 
   const cycleCard = renderCycleCard({ iAmHer, herName });
+  const wiseCard  = renderWiseCard({ iAmHer, herName });
   const todosCard = renderTodosCard({ iAmHer, herName });
   host.appendChild(cycleCard.node);
+  host.appendChild(wiseCard.node);
   host.appendChild(todosCard.node);
 
   unsubCycle = watchCycle(herUid, ({ settings, starts }) => {
     cycleCard.update({ settings, starts });
+    wiseCard.update({ settings, starts });
   });
   unsubTodos = watchTodos(herUid, (list) => {
     todosCard.update(list);
@@ -250,6 +254,45 @@ function renderCycleCard({ iAmHer, herName }) {
         } catch (e2) { showErr(err, e2); }
         finally { saveBtn.disabled = false; }
       });
+    },
+  };
+}
+
+// ──────────────── wise-words card ────────────────
+// A gentle, phase-aware note that lives in the today sub-view. Same note on
+// both partners' screens on the same day (see wise-words.js — the pick is
+// deterministic on {phase, date}).
+function renderWiseCard({ iAmHer, herName }) {
+  const card = el("div", "tr-card wise-card");
+  card.dataset.hue = "muted";
+
+  const flower = el("span", "wise-flower hand", "✿");
+  flower.setAttribute("aria-hidden", "true");
+  card.appendChild(flower);
+
+  const header = el("div", "wise-head");
+  const kicker = el("p", "wise-kicker hand", iAmHer ? "a note for today" : `today's read on ${herName || "her"}`);
+  const phasePill = el("span", "wise-phase-pill", "…");
+  header.appendChild(kicker);
+  header.appendChild(phasePill);
+
+  const title = el("p", "wise-title serif", "…");
+  const body  = el("p", "wise-body",       "");
+
+  card.appendChild(header);
+  card.appendChild(title);
+  card.appendChild(body);
+
+  return {
+    node: card,
+    update({ settings, starts }) {
+      const p = currentPhase(settings, starts);
+      const note = pickWiseWord(p.key);
+      card.dataset.hue = p.hue || "muted";
+      phasePill.textContent = p.label;
+      phasePill.dataset.hue = p.hue || "muted";
+      title.textContent = note.title;
+      body.textContent  = note.body;
     },
   };
 }

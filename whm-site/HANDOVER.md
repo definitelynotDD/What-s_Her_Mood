@@ -27,7 +27,11 @@ started as a stretch feature and now works end-to-end.
 - **Hosting:** [whm-couple.netlify.app](https://whm-couple.netlify.app) —
   Netlify site id `67ba4904-c92b-4016-92c6-c4b019042b9a`, team
   `definitelynotdd`. `netlify.toml` at the repo root pins `publish = whm-site`
-  so the correct folder ships.
+  so the correct folder ships.  
+  **Deploy path matters for quota:** the Starter plan gives 300 build min/mo
+  and the MCP deploy tool runs each upload through Netlify's build pipeline
+  (~2 min a pop). Prefer `netlify-cli deploy --dir whm-site --prod` — direct
+  upload, zero build minutes. See `DEPLOY.md`.
 - **Frontend:** `index.html` + `css/` + `js/` — one folder, `whm-site/`. Modules:
   `supabase-init.js`, `auth.js`, `pairing.js`, `main.js` (Stage 1 core);
   `cycle.js` + `todos.js` + `tracker.js` (Stage 2); `rtc.js` + `hangout.js`

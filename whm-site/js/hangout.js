@@ -183,7 +183,7 @@ export async function openHangout({ me, partner, myName, partnerName, onExit }) 
 }
 
 function wireControls() {
-  const mic = $("hg-mic"), cam = $("hg-cam"), scr = $("hg-screen"), bye = $("hg-hangup");
+  const mic = $("hg-mic"), cam = $("hg-cam"), scr = $("hg-screen");
   const form = $("hg-chat-form"), input = $("hg-chat-input");
 
   const setLabel = (btn, text) => {
@@ -208,7 +208,8 @@ function wireControls() {
     setLabel(cam, tr.enabled ? "camera on" : "camera off");
   };
   scr.onclick = () => (room.screenStream ? stopScreen() : startScreen());
-  bye.onclick = () => closeHangout();
+  // NOTE: leave button (#hg-hangup) is wired in main.js at module load so it
+  // works even if getUserMedia fails and this wireControls() never runs.
 
   const vol = $("hg-vol-input");
   if (vol) {

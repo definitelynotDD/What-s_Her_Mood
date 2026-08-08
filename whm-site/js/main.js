@@ -228,3 +228,11 @@ $("#start-hangout").addEventListener("click", () => {
   showScreen("hangout");
   openHangout({ ...currentPairing, onExit: () => showScreen("app") });
 });
+
+// Leave: wired here (not inside openHangout) so it always works — a failed
+// getUserMedia in openHangout used to return before the button was hooked up,
+// stranding the user on the hangout screen with a dead "leave" button.
+$("#hg-hangup").addEventListener("click", () => {
+  closeHangout();       // safe no-op if no active room
+  showScreen("app");    // idempotent — closeHangout's onExit also lands here
+});

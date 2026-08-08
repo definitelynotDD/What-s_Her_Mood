@@ -24,25 +24,17 @@ The live site is [`whm-couple.netlify.app`](https://whm-couple.netlify.app)
 `netlify.toml` at the repo root pins `publish = whm-site` so the correct folder
 ships.
 
-Three ways to redeploy, pick whichever fits. **Default to the CLI** — the MCP
-path costs Netlify build minutes on every deploy (each run goes through their
-build pipeline even though we have no build step), while the CLI and drag-drop
-paths are plain uploads that don't touch the monthly quota.
+Three ways to redeploy, pick whichever fits:
 
-- **Netlify CLI (default, zero build minutes):**
-  ```
-  npx -y netlify-cli login                        # once per machine
-  npx -y netlify-cli deploy --site 67ba4904-c92b-4016-92c6-c4b019042b9a --dir whm-site --prod
-  ```
-  The first command opens a browser to authorize the CLI; after that every
-  deploy is a raw upload.
-- **Drag-and-drop (zero build minutes):** <https://app.netlify.com/drop> →
-  drag the **`whm-site`** folder onto the Deploys tab of the existing site.
-- **Netlify MCP (from Claude — convenient, but spends build minutes):** ask
-  Claude to "redeploy whm-site" — it calls the deploy-site MCP tool which
-  returns a shell command, then runs it. Handy when the CLI isn't authed on
-  this machine, but each deploy burns ~2 build minutes of the 300/mo Starter
-  quota. Reserve for when the CLI isn't practical.
+- **Netlify MCP (default, from Claude):** ask Claude to "redeploy whm-site" —
+  it calls the deploy-site MCP tool which returns a shell command, then runs
+  it. Uploads the whm-site folder and waits for the deploy to finish. No
+  browser or CLI auth needed. Each deploy runs through Netlify's build pipeline
+  (~2 build min out of the 300/mo Starter quota).
+- **Netlify CLI:** `npx -y netlify-cli deploy --site 67ba4904-c92b-4016-92c6-c4b019042b9a --dir whm-site --prod`
+  (`netlify-cli login` once first). Plain upload, no build minutes charged.
+- **Drag-and-drop:** <https://app.netlify.com/drop> → drag the **`whm-site`**
+  folder onto the Deploys tab of the existing site. Also no build minutes.
 
 > `config.js` is git-ignored but **must** be in the folder that ships — that's
 > how the deployed app gets its Supabase URL + key. Netlify preserves it because

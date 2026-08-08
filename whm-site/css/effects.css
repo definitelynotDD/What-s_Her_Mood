@@ -22,9 +22,11 @@
 
 .wm-heart {
   position: absolute;
-  bottom: 8%;
+  /* left + top come from JS (percent-based on the stage) so each heart starts
+     exactly where the pointer landed, not on a fixed line. */
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3));
   animation: floatUp 2.4s ease-out forwards;
   will-change: transform, opacity;
   user-select: none;
+  pointer-events: none;
 }

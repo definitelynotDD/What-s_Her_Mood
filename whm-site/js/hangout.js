@@ -10,7 +10,7 @@
 // ─────────────────────────────────────────────────────────────
 import { supabase } from "./supabase-init.js";
 import { createPeer } from "./rtc.js";
-import { spawnHearts } from "./effects.js";
+import { spawnHearts, spawnHeartsAt } from "./effects.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -151,6 +151,12 @@ export async function openHangout({ me, partner, myName, partnerName, onExit }) 
         remote.screenId = null;
       }
     })
+    .on("broadcast", { event: "heart" }, ({ payload }) => {
+      if (payload && payload.from !== me && payload.x != null && payload.y != null) {
+        const stage = $("hg-stage");
+        if (stage) spawnHeartsAt(stage, payload.x, payload.y);
+      }
+    })
     .on("presence", { event: "leave" }, () => {
       const present = Object.keys(channel.presenceState() || {}).length;
       if (present < 2) status((partnerName || "your partner") + " left the room.");
@@ -221,12 +227,20 @@ function wireControls() {
     input.value = "";
   };
 
-  // Floating hearts: tap the stage, get 6 hearts floating up. Guard against
-  // the click coming from the local PIP / mute pill / screen slot (buttons
-  // fire pointerdown too and we don't want a heart when someone drags).
+  // Floating hearts: tap the stage → hearts float up from the tap point, and
+  // the partner sees the same hearts at the same coords (broadcast the %-based
+  // position over the room channel).
   const stage = $("hg-stage");
   if (stage) {
-    const onDown = (e) => spawnHearts(stage, e);
+    const onDown = (e) => {
+      const pos = spawnHearts(stage, e);
+      if (pos && room) {
+        room.channel.send({
+          type: "broadcast", event: "heart",
+          payload: { from: room.me, x: pos.xPct, y: pos.yPct },
+        });
+      }
+    };
     stage.addEventListener("mousedown", onDown);
     stage.addEventListener("touchstart", onDown, { passive: true });
   }

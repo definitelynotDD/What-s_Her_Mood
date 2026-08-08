@@ -44,15 +44,28 @@ export function spawnConfetti(host, origin, count = 22) {
   setTimeout(() => pieces.forEach((p) => p.remove()), 1300);
 }
 
-// Spawn floating hearts inside `host` from the pointer x. Used on hangout stage.
+// Spawn floating hearts inside `host` from the pointer position. Returns the
+// resolved {xPct, yPct} so the caller can echo the same position over the wire
+// (that's how the partner's screen ends up with matching hearts).
 export function spawnHearts(host, event, count = 6) {
-  if (!host) return;
+  if (!host) return null;
   const rect = host.getBoundingClientRect();
   const clientX =
     (event && event.clientX != null) ? event.clientX :
     (event && event.touches && event.touches[0] ? event.touches[0].clientX : rect.left + rect.width / 2);
-  const xPct = Math.max(4, Math.min(96, ((clientX - rect.left) / rect.width) * 100));
+  const clientY =
+    (event && event.clientY != null) ? event.clientY :
+    (event && event.touches && event.touches[0] ? event.touches[0].clientY : rect.top + rect.height * 0.9);
+  const xPct = ((clientX - rect.left) / rect.width)  * 100;
+  const yPct = ((clientY - rect.top ) / rect.height) * 100;
+  spawnHeartsAt(host, xPct, yPct, count);
+  return { xPct, yPct };
+}
 
+// Same, but from explicit percentages — used by the "heart" broadcast handler
+// so the partner sees hearts at the exact spot you tapped.
+export function spawnHeartsAt(host, xPct, yPct, count = 6) {
+  if (!host) return;
   const layer = ensureLayer(host, "wm-hearts-layer");
   const spawns = [];
   for (let i = 0; i < count; i++) {
@@ -60,7 +73,8 @@ export function spawnHearts(host, event, count = 6) {
     el.className = "wm-heart";
     el.textContent = "♡";
     Object.assign(el.style, {
-      left: `${Math.max(4, Math.min(96, xPct + rand(-5, 5)))}%`,
+      left: `${clamp(xPct + rand(-5, 5), 2, 98)}%`,
+      top:  `${clamp(yPct + rand(-4, 4), 2, 98)}%`,
       fontSize: `${rand(20, 42)}px`,
       color: HEART_COLORS[(Math.random() * HEART_COLORS.length) | 0],
     });
@@ -71,6 +85,8 @@ export function spawnHearts(host, event, count = 6) {
   }
   setTimeout(() => spawns.forEach((h) => h.remove()), 2500);
 }
+
+function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
 
 function ensureLayer(host, cls) {
   let layer = host.querySelector(":scope > ." + cls);

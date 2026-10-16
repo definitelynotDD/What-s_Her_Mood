@@ -52,8 +52,12 @@ canonical, `whm-stage1/` is gone. If old README/HANDOVER copies mention
 1. **Stage 3** — wise-words bank + his-side dashboard tile that folds in
    today's phase-aware note (the tracker already computes the phase).
 2. Optional hangout upgrades if wanted later — a dedicated TURN provider
-   (Twilio/Cloudflare Calls) instead of the shared Open Relay, a "your partner
-   left" heartbeat since we dropped the presence rendezvous.
+   (Twilio/Cloudflare Calls) instead of the shared Open Relay — if the
+   in-call readout says "via relay" and voice is choppy, this is the fix — and
+   a mic picker, so Bluetooth earbuds can stay in high-quality output mode.
+3. Other Realtime subscriptions (pairing watch, tracker live updates) have
+   the same expired-token problem in a long-hidden tab as the hangout had;
+   only the hangout keeps its token fresh and rebuilds its channel today.
 
 ---
 
@@ -144,8 +148,10 @@ tab-audio, per-viewer volume slider, muted-pill overlay on either party.
 
 **Signaling & rendezvous** — one Supabase Realtime channel per couple, keyed
 by the sorted pair of uids (`couple = [a,b].sort().join("__")`). The channel
-carries three broadcast events: `hello` (rendezvous), `signal` (SDP + ICE),
-`chat`, plus screen-lifecycle (`screen-on`, `screen-off`) and `mute`.
+carries broadcast events: `hello` (rendezvous), `signal` (SDP + ICE),
+`chat`, `heart`, `mute`, `bye` (left the room), plus screen-lifecycle
+(`screen-on`, `screen-off`). Every payload carries `from`, `since` (session
+start) and `cam` (the sender's camera MediaStream id, used to route streams).
 
 We originally used Supabase Realtime **presence** to know when both partners
 were in the room and it was safe to `addTrack` — but presence never fired
@@ -169,7 +175,48 @@ Twilio / Cloudflare Calls / Metered account for real production use.
 **Screen audio** is best-effort — Chrome/Edge deliver it when the user picks
 a tab (with "Also share tab audio" ticked) or whole screen on Windows.
 Firefox / Safari / mobile silently return no audio track; the share still
-goes through, just video-only.
+goes through, just video-only. The capture asks for `restrictOwnAudio` so a
+whole-screen share doesn't pick up the call's own sound (the partner hearing
+their own voice echoed back), and turns voice processing off for it (it's
+music/video, not speech).
+
+**Long calls (Oct 2026 fix).** Media is P2P, so the call itself survives the
+signaling channel dying — but screen share (needs a renegotiation), chat and
+hearts silently stopped after roughly an hour. Cause: supabase-js only runs its
+token refresh while the tab is *visible* ("refresh token ticker runs only on
+focused tabs", auth-js `_onVisibilityChanged`); switch to the tab you're
+sharing, the JWT expires, Realtime closes the channel, and nothing re-opened
+it. Three layers now:
+1. `hangout.js` `keepAuthFresh()` refreshes the session itself during a call
+   (every 60 s it checks; refreshes with <5 min left). supabase-js forwards
+   `TOKEN_REFRESHED` to Realtime.
+2. The subscribe callback watches `CHANNEL_ERROR` / `TIMED_OUT` / `CLOSED` and
+   rebuilds the channel (`repairChannel`) if the built-in rejoin doesn't win.
+3. `rtc.js` offer watchdog: an offer with no answer is **re-sent unchanged**
+   (4 s, 8 s, then every 15 s). Not rollback + new offer — if the *answer* was
+   the lost message, the partner already applied the old offer and rejects a
+   rebuilt one ("order of m-lines … doesn't match").
+Also: the share layout follows the actual screen track (arrives → on,
+`removetrack` → off), so a lost `screen-on`/`screen-off` can't strand it; every
+message carries the sender's session start (`since`) so a partner who leaves and
+rejoins gets a fresh RTCPeerConnection on the other side (a `bye` does the same
+immediately); ICE restarts itself on `failed`.
+
+**Voice quality.** The mic sender negotiates **RED** (redundant Opus — each
+packet carries the previous frame, so a lost packet is rebuilt instead of heard
+as a glitch; ~2× audio bitrate, verified in Chromium) and runs at
+`priority: "high"` so video degrades before voice. The status line shows a
+readout from `getStats()` — `direct` / `via relay`, `voice clear` / `choppy ·
+N% lost`, RTT. If voice is bad but the readout says clear, it's the device, not
+the network: Bluetooth earbuds drop into low-quality headset mode when their mic
+is in use (use the laptop mic, or wired), and speakers without headphones lean
+on echo cancellation.
+
+**Testing the hangout without Supabase.** The resilience paths were verified
+with two Chromium tabs (Playwright, fake camera/mic/screen) running the real
+`hangout.js` + `rtc.js`, with `supabase-init.js` swapped for a
+BroadcastChannel mock that can drop messages and kill channels on command. The
+harness isn't committed; rebuild it that way if you change this code.
 
 **Watch out for** — the auth listener has to dedupe by uid, otherwise
 `onAuthStateChange` fires on `TOKEN_REFRESHED` (every tab foreground) and the

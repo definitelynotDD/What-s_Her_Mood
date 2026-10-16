@@ -66,7 +66,10 @@ OFF doesn't need this — Supabase doesn't restrict sign-in by origin.)
    both sides. You should see each other's camera, hear each other, and see the
    text chat work. Try **share screen** with "Also share tab audio" ticked in
    the picker — layout flips to 3/4 screen + 1/4 stacked cameras and shared
-   audio comes through with a volume slider on the viewer side.
+   audio comes through with a volume slider on the viewer side. Within a few
+   seconds the status line should read e.g. `connected ♡ · direct · voice clear
+   · 40 ms`. Then stop sharing and share from the *other* side — the first
+   sharer must hear the second one's tab audio (that used to stay muted).
 
 ## If something fails
 

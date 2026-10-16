@@ -32,7 +32,7 @@ started as a stretch feature and now works end-to-end.
 - **Frontend:** `index.html` + `css/` + `js/` — one folder, `whm-site/`. Modules:
   `supabase-init.js`, `auth.js`, `pairing.js`, `main.js` (Stage 1 core);
   `cycle.js` + `todos.js` + `tracker.js` (Stage 2); `rtc.js` + `hangout.js`
-  (the P2P hangout).
+  (the P2P hangout); `realtime.js` (every Realtime channel goes through it).
 
 **Why not Firebase?** Stage 1 was first built on Firebase, but creating the
 Firestore database hit a "billing must be enabled" wall, and Firebase has no
@@ -51,13 +51,9 @@ canonical, `whm-stage1/` is gone. If old README/HANDOVER copies mention
 
 1. **Stage 3** — wise-words bank + his-side dashboard tile that folds in
    today's phase-aware note (the tracker already computes the phase).
-2. Optional hangout upgrades if wanted later — a dedicated TURN provider
-   (Twilio/Cloudflare Calls) instead of the shared Open Relay — if the
-   in-call readout says "via relay" and voice is choppy, this is the fix — and
-   a mic picker, so Bluetooth earbuds can stay in high-quality output mode.
-3. Other Realtime subscriptions (pairing watch, tracker live updates) have
-   the same expired-token problem in a long-hidden tab as the hangout had;
-   only the hangout keeps its token fresh and rebuilds its channel today.
+2. If the in-call readout says "via relay" and voice is choppy: get a
+   dedicated TURN account (Metered free tier, or Twilio / Cloudflare) and put
+   its credentials URL in `config.webrtc.iceServersUrl`. No code change needed.
 
 ---
 
@@ -187,11 +183,17 @@ token refresh while the tab is *visible* ("refresh token ticker runs only on
 focused tabs", auth-js `_onVisibilityChanged`); switch to the tab you're
 sharing, the JWT expires, Realtime closes the channel, and nothing re-opened
 it. Three layers now:
-1. `hangout.js` `keepAuthFresh()` refreshes the session itself during a call
-   (every 60 s it checks; refreshes with <5 min left). supabase-js forwards
-   `TOKEN_REFRESHED` to Realtime.
-2. The subscribe callback watches `CHANNEL_ERROR` / `TIMED_OUT` / `CLOSED` and
-   rebuilds the channel (`repairChannel`) if the built-in rejoin doesn't win.
+1. `realtime.js` `keepAuthFresh()` refreshes the session itself while any
+   channel is open (checks every 60 s; refreshes with <5 min left).
+   supabase-js forwards `TOKEN_REFRESHED` to Realtime and auth-js broadcasts
+   it to the app's other tabs.
+2. `realtime.js` `keepSubscribed()` watches `CHANNEL_ERROR` / `TIMED_OUT` /
+   `CLOSED` and rebuilds the channel if supabase-js's own rejoin doesn't win
+   within 5 s (1 s for `CLOSED`, which nothing else retries). **Every** Realtime
+   channel in the app goes through it — hangout, `me:` (pairing), `cycle:`,
+   `todos:` — and the data watchers re-fetch on every join (first included;
+   Realtime never replays what you missed) behind `onlyWhenChanged()`, so a
+   catch-up fetch with nothing new doesn't re-render or remount anything.
 3. `rtc.js` offer watchdog: an offer with no answer is **re-sent unchanged**
    (4 s, 8 s, then every 15 s). Not rollback + new offer — if the *answer* was
    the lost message, the partner already applied the old offer and rejects a
@@ -209,14 +211,28 @@ as a glitch; ~2× audio bitrate, verified in Chromium) and runs at
 readout from `getStats()` — `direct` / `via relay`, `voice clear` / `choppy ·
 N% lost`, RTT. If voice is bad but the readout says clear, it's the device, not
 the network: Bluetooth earbuds drop into low-quality headset mode when their mic
-is in use (use the laptop mic, or wired), and speakers without headphones lean
-on echo cancellation.
+is in use, and speakers without headphones lean on echo cancellation. The
+hangout has a **mic picker** (shown when there's more than one mic; choice
+remembered in `localStorage`) and, when the active mic's label looks like
+earbuds, a hint offering the built-in mic so the earbuds stay in high-quality
+listening mode. Switching uses `replaceTrack` — no renegotiation, mute state
+kept — and if the mic disconnects mid-call (earbuds die) it falls back to the
+default mic instead of going silent. No speaker picker on purpose: routing
+output away from the default device can weaken Chrome's echo cancellation.
+
+**Relay (TURN).** `config.webrtc.iceServersUrl` (optional) is fetched at the
+start of each hangout for fresh TURN credentials — Metered's credentials URL
+returns the right shape directly; `{ iceServers }` / `{ ice_servers }` bodies
+also work. Falls back to `config.webrtc.iceServers` on any error.
 
 **Testing the hangout without Supabase.** The resilience paths were verified
 with two Chromium tabs (Playwright, fake camera/mic/screen) running the real
 `hangout.js` + `rtc.js`, with `supabase-init.js` swapped for a
 BroadcastChannel mock that can drop messages and kill channels on command. The
-harness isn't committed; rebuild it that way if you change this code.
+harness isn't committed; rebuild it that way if you change this code. The
+same mock plus a tiny `from()` query stub covers `realtime.js` and the
+pairing / to-do watchers (drop channels, change rows while down, check the
+UI catches up).
 
 **Watch out for** — the auth listener has to dedupe by uid, otherwise
 `onAuthStateChange` fires on `TOKEN_REFRESHED` (every tab foreground) and the
@@ -329,6 +345,9 @@ Each stage is a working, deployable build. Port Ember features one at a time
 7. Pairing = both rows' `paired_with` set to each other. No join table.
 8. Supabase Realtime (`postgres_changes` on `public.users`, filtered to my row)
    is the real-time pattern; `watchMyUserRow` is the reference implementation.
+   Open channels with `realtime.js` `keepSubscribed()`, never bare
+   `supabase.channel().subscribe()` — a bare channel dies for good the first
+   time its token expires in a background tab.
    For any 2-party rendezvous like the hangout, prefer a broadcast handshake
    over presence — presence hasn't been reliable in our tests.
 9. To-dos (Stage 2) are fully partner-visible — no per-item privacy toggle. An

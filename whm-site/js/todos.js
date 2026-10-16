@@ -6,6 +6,7 @@
 // the same RLS pattern used by cycle_settings. Realtime keeps both in sync.
 // ─────────────────────────────────────────────────────────────
 import { supabase } from "./supabase-init.js";
+import { keepSubscribed, onlyWhenChanged } from "./realtime.js";
 
 export async function fetchTodos(userId) {
   const { data, error } = await supabase
@@ -45,15 +46,19 @@ export async function deleteTodo(id) {
 // Live list. cb(list) fires immediately with the current rows, then on every change.
 export function watchTodos(userId, cb) {
   let list = [];
-  const push = () => cb(list.slice());
+  const changed = onlyWhenChanged(cb);
+  const push = () => changed(list.slice());
 
-  fetchTodos(userId).then((rows) => { list = rows; push(); }).catch(() => push());
+  const load = () => fetchTodos(userId).then((rows) => { list = rows; push(); }).catch(() => push());
 
-  const channel = supabase.channel("todos:" + userId)
-    .on("postgres_changes",
+  load();
+  const sub = keepSubscribed("todos:" + userId, {
+    setup: (ch) => ch.on("postgres_changes",
         { event: "*", schema: "public", table: "todos", filter: "user_id=eq." + userId },
-        async () => { list = await fetchTodos(userId); push(); })
-    .subscribe();
+        async () => { list = await fetchTodos(userId); push(); }),
+    // Changes made before/while the channel was down are never replayed — re-read.
+    onJoin: load,
+  });
 
-  return () => { supabase.removeChannel(channel); };
+  return () => sub.close();
 }

@@ -21,7 +21,14 @@ window.WHM_CONFIG = {
     iceServers: [
       { urls: "stun:stun.l.google.com:19302" }
       // , { urls: "turn:YOUR_TURN_HOST:3478", username: "USER", credential: "PASS" }
-    ]
+    ],
+    // Optional: a URL that returns fresh TURN credentials, fetched at the start
+    // of every hangout (used instead of iceServers; falls back to it on error).
+    // If the in-call readout says "via relay" and voice is choppy, the shared
+    // free relay is the bottleneck — sign up for your own (Metered has a free
+    // tier) and paste its credentials URL here, e.g.
+    //   "https://YOURAPP.metered.live/api/v1/turn/credentials?apiKey=YOUR_KEY"
+    iceServersUrl: ""
   },
   gemini: { apiKey: "" }   // leave empty until Stage 5
 };

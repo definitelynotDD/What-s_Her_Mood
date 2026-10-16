@@ -70,6 +70,9 @@ OFF doesn't need this — Supabase doesn't restrict sign-in by origin.)
    seconds the status line should read e.g. `connected ♡ · direct · voice clear
    · 40 ms`. Then stop sharing and share from the *other* side — the first
    sharer must hear the second one's tab audio (that used to stay muted).
+   With more than one mic connected, a **mic** picker appears next to the
+   controls; with Bluetooth earbuds as the mic, a yellow hint offers the
+   laptop mic instead.
 
 ## If something fails
 

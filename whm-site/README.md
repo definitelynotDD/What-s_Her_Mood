@@ -128,6 +128,7 @@ whm-site/
 │   ├── cycle.js            Cycle data + phase math (Stage 2)
 │   ├── todos.js            Her todos CRUD + live subscription (Stage 2)
 │   ├── tracker.js          Cycle + todos UI, mounted inside the paired-box
+│   ├── realtime.js         Realtime channels that survive long sessions (token keep-alive, rebuild, catch-up)
 │   ├── rtc.js              Perfect-negotiation WebRTC wrapper
 │   ├── hangout.js          Room lifecycle: media, signaling, chat, screen share
 │   └── main.js             DOM event wiring + screen routing

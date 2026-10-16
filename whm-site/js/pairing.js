@@ -6,27 +6,34 @@
 // never writes the link directly.
 // ─────────────────────────────────────────────────────────────
 import { supabase } from "./supabase-init.js";
+import { keepSubscribed, onlyWhenChanged } from "./realtime.js";
 
 // Live-subscribe to my own row. cb(row) fires with the current row immediately,
 // then on every change — this is what flips both partners to "paired" live.
+// Identical rows are skipped: a re-fetch after a reconnect would otherwise
+// re-render the whole paired screen (and remount the tracker) for nothing.
 export function watchMyUserRow(uid, cb) {
-  supabase
+  const changed = onlyWhenChanged(cb);
+  const deliver = (row) => { if (row) changed(row); };
+  const load = () => supabase
     .from("users")
     .select("*")
     .eq("id", uid)
     .maybeSingle()
-    .then(({ data }) => { if (data) cb(data); });
+    .then(({ data }) => deliver(data));
 
-  const channel = supabase
-    .channel("me:" + uid)
-    .on(
+  load();
+  const sub = keepSubscribed("me:" + uid, {
+    setup: (ch) => ch.on(
       "postgres_changes",
       { event: "*", schema: "public", table: "users", filter: "id=eq." + uid },
-      (payload) => cb(payload.new)
-    )
-    .subscribe();
+      (payload) => deliver(payload.new)
+    ),
+    // Changes made before/while the channel was down are never replayed — re-read.
+    onJoin: load,
+  });
 
-  return () => { supabase.removeChannel(channel); };
+  return () => sub.close();
 }
 
 // Claim a partner's code. Server-side claim_partner() figures out who I am from

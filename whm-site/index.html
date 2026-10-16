@@ -170,7 +170,18 @@
           <span class="hg-vol-label">shared audio</span>
           <input id="hg-vol-input" type="range" min="0" max="1" step="0.02" value="1" />
         </label>
+        <label id="hg-mic-pick-wrap" class="hg-dev" title="which microphone to talk into" hidden>
+          <span class="hg-dev-label">mic</span>
+          <select id="hg-mic-pick"></select>
+        </label>
       </div>
+      <p id="hg-bt-hint" class="hg-bt-hint" role="status" hidden>
+        <span id="hg-bt-hint-text"></span>
+        <span class="hg-bt-actions">
+          <button type="button" id="hg-bt-switch" class="hg-bt-btn">switch mic</button>
+          <button type="button" id="hg-bt-dismiss" class="hg-bt-btn hg-bt-btn-quiet">keep earbuds</button>
+        </span>
+      </p>
       <div class="hg-chat">
         <div id="hg-chat-log" class="hg-chat-log" aria-live="polite"></div>
         <form id="hg-chat-form" class="hg-chat-form">

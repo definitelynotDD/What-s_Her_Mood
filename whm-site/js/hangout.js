@@ -13,18 +13,22 @@
 // silently stops. Signaling died after ~1h because supabase-js only refreshes
 // the auth token while the tab is visible — switch to the tab you're sharing
 // and the token expires, Realtime closes the channel, and nothing re-opened it.
-// So the room now (1) keeps the token fresh itself, (2) rebuilds the channel
-// whenever it drops, and (3) rtc.js re-sends offers that went unanswered.
+// So the channel goes through realtime.js keepSubscribed() (token kept fresh,
+// channel rebuilt when it drops) and rtc.js re-sends unanswered offers.
 // ─────────────────────────────────────────────────────────────
-import { supabase } from "./supabase-init.js";
 import { createPeer, tuneVoiceSender, setVoicePriority } from "./rtc.js";
+import { keepSubscribed } from "./realtime.js";
 import { spawnHearts, spawnHeartsAt } from "./effects.js";
 
 const $ = (id) => document.getElementById(id);
 
-const AUTH_CHECK_MS = 60 * 1000;          // how often to look at the token during a call
-const AUTH_REFRESH_MARGIN_S = 5 * 60;     // refresh when it has less than this left
 const QUALITY_SAMPLE_MS = 4000;
+const MIC_PREF_KEY = "whm.hangout.mic";
+// Labels of mics that live in Bluetooth earbuds/headsets. Using one flips the
+// earbuds into "hands-free" mode: phone-call audio quality both ways.
+const BLUETOOTH_MIC = /airpods|bluetooth|hands-?free|headset|\bbuds?\b|beats|bose|jabra|wh-1000|wf-1000|\bbt\b/i;
+const BUILT_IN_MIC = /built-?in|internal|macbook|laptop|array|realtek|speakerphone/i;
+const PSEUDO_MIC_IDS = new Set(["default", "communications"]);
 
 let room = null;     // active room state, or null
 let opening = 0;     // id of an openHangout() still waiting on the camera, 0 = none
@@ -33,11 +37,40 @@ let heartsWired = false;
 
 function coupleKey(a, b) { return [a, b].sort().join("__"); }
 
-function iceServers() {
-  const cfg = window.WHM_CONFIG && window.WHM_CONFIG.webrtc;
-  if (cfg && Array.isArray(cfg.iceServers) && cfg.iceServers.length) return cfg.iceServers;
-  return [{ urls: "stun:stun.l.google.com:19302" }];
+// config.webrtc.iceServers is the static list. If config.webrtc.iceServersUrl
+// is set, fresh TURN credentials are fetched from it at the start of each
+// hangout instead (Metered returns a bare array; Cloudflare/Twilio-style
+// { iceServers } / { ice_servers } bodies work too). Falls back to the static
+// list if the fetch fails.
+async function resolveIceServers() {
+  const cfg = (window.WHM_CONFIG && window.WHM_CONFIG.webrtc) || {};
+  const fallback = Array.isArray(cfg.iceServers) && cfg.iceServers.length
+    ? cfg.iceServers : [{ urls: "stun:stun.l.google.com:19302" }];
+  if (!cfg.iceServersUrl) return fallback;
+  try {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 5000);
+    const res = await fetch(cfg.iceServersUrl, { signal: ctl.signal });
+    clearTimeout(timer);
+    const body = await res.json();
+    const raw = Array.isArray(body) ? body : (body && (body.iceServers || body.ice_servers));
+    const list = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+    if (res.ok && list.length) return list;
+    console.warn("[hangout] iceServersUrl returned no servers — using config iceServers");
+  } catch (err) {
+    console.warn("[hangout] couldn't fetch TURN credentials — using config iceServers", err);
+  }
+  return fallback;
 }
+
+function voiceConstraints(deviceId, exact) {
+  // Browsers default these on; spelled out so nobody "simplifies" them off.
+  const c = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+  if (deviceId) c.deviceId = exact ? { exact: deviceId } : { ideal: deviceId };
+  return c;
+}
+function loadMicPref() { try { return localStorage.getItem(MIC_PREF_KEY) || ""; } catch (_) { return ""; } }
+function saveMicPref(id) { try { localStorage.setItem(MIC_PREF_KEY, id); } catch (_) {} }
 
 function status(msg) { const el = $("hg-status"); if (el) el.textContent = msg; }
 function partnerLabel() { return (room && room.partnerName) || "your partner"; }
@@ -62,23 +95,6 @@ function playInto(el, stream) {
   if (p && typeof p.catch === "function") p.catch(() => {});
 }
 
-// supabase-js pauses its own token refresh while the tab is hidden, and the
-// Realtime server closes channels whose token has expired. During a call the
-// tab is often hidden (you switched to what you're sharing), so refresh here.
-// supabase-js forwards the new token to Realtime on TOKEN_REFRESHED.
-async function keepAuthFresh() {
-  try {
-    const { data } = await supabase.auth.getSession();
-    const s = data && data.session;
-    if (!s || !s.expires_at) return;
-    if (s.expires_at - Date.now() / 1000 > AUTH_REFRESH_MARGIN_S) return;
-    const { error } = await supabase.auth.refreshSession();
-    if (error) console.warn("[hangout] token refresh failed", error.message || error);
-  } catch (err) {
-    console.warn("[hangout] token refresh failed", err);
-  }
-}
-
 export async function openHangout({ me, partner, myName, partnerName, onExit }) {
   if (room || opening) return; // already open / opening
   const seq = opening = ++openSeq;
@@ -91,18 +107,19 @@ export async function openHangout({ me, partner, myName, partnerName, onExit }) 
   const canShare = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
   if ($("hg-screen")) $("hg-screen").hidden = !canShare;
 
+  const icePromise = resolveIceServers(); // in parallel with the camera prompt
   let localStream;
   try {
     localStream = await navigator.mediaDevices.getUserMedia({
       video: true,
-      // Browsers default these on; spelled out so nobody "simplifies" them off.
-      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      audio: voiceConstraints(loadMicPref(), false), // last-picked mic, if it's still around
     });
   } catch (err) {
     if (opening === seq) opening = 0;
     status("couldn't get camera/mic — check the browser permission and that you're on https.");
     return;
   }
+  const ice = await icePromise;
   if (opening !== seq) { localStream.getTracks().forEach((t) => t.stop()); return; } // left while we waited
   opening = 0;
 
@@ -112,7 +129,7 @@ export async function openHangout({ me, partner, myName, partnerName, onExit }) 
   localVid.play && localVid.play().catch(() => {});
 
   room = {
-    me, partner, myName, partnerName, localStream,
+    me, partner, myName, partnerName, localStream, ice,
     polite: String(me) < String(partner),
     // When this session started. The partner compares it to the last one they
     // saw to tell "you left and came back" (rebuild the connection) from a
@@ -124,16 +141,17 @@ export async function openHangout({ me, partner, myName, partnerName, onExit }) 
     peer: null, peerHasTracks: false, micSender: null,
     remote: { cameraId: null, share: null },
     screenStream: null, screenSenders: [],
-    channel: null, channelJoined: false, repairTimer: null, repairAttempt: 0,
-    authTimer: null, qualityTimer: null, lastQ: null,
+    rt: null, qualityTimer: null, lastQ: null, btHintDismissed: false,
     _onExit: onExit,
   };
 
+  const mic = localStream.getAudioTracks()[0];
+  if (mic) mic.onended = onMicLost;
   buildPeer();
   openChannel();
-  keepAuthFresh();
-  room.authTimer = setInterval(keepAuthFresh, AUTH_CHECK_MS);
   room.qualityTimer = setInterval(sampleQuality, QUALITY_SAMPLE_MS);
+  if (navigator.mediaDevices.addEventListener) navigator.mediaDevices.addEventListener("devicechange", refreshMicPicker);
+  refreshMicPicker();
 
   // ---- controls ----
   wireControls();
@@ -144,7 +162,7 @@ export async function openHangout({ me, partner, myName, partnerName, onExit }) 
 function buildPeer() {
   if (room.peer) room.peer.close();
   const peer = createPeer({
-    iceServers: iceServers(),
+    iceServers: room.ice,
     polite: room.polite,
     sendSignal: (sig) => send("signal", { sig }),
     onRemoteStream: (stream) => { if (room && room.peer === peer) routeIncomingStream(stream); },
@@ -260,8 +278,8 @@ function micMuted() {
 // ---- signaling channel ----
 
 function send(event, extra) {
-  if (!room || !room.channel) return;
-  room.channel.send({
+  if (!room || !room.rt) return;
+  room.rt.send({
     type: "broadcast", event,
     payload: { from: room.me, since: room.since, cam: room.localStream.id, ...extra },
   });
@@ -305,12 +323,15 @@ function markPartnerHere() {
 }
 
 function openChannel() {
-  const ch = supabase.channel("hangout:" + coupleKey(room.me, room.partner), {
-    config: { broadcast: { self: false }, presence: { key: String(room.me) } },
+  room.rt = keepSubscribed("hangout:" + coupleKey(room.me, room.partner), {
+    params: { config: { broadcast: { self: false }, presence: { key: String(room.me) } } },
+    setup: wireChannel,
+    onJoin: onChannelJoined,
   });
-  room.channel = ch;
-  room.channelJoined = false;
+}
 
+// Runs for the first channel and again for every rebuilt one.
+function wireChannel(ch) {
   ch
     .on("broadcast", { event: "signal" }, ({ payload }) => {
       if (acceptFromPartner(payload)) room.peer.handleSignal(payload.sig);
@@ -347,25 +368,16 @@ function openChannel() {
       room.partnerSince = null; // whatever session they come back with is new
     })
     .on("presence", { event: "leave" }, () => {
-      if (!room || room.channel !== ch) return;
+      if (!room || room.rt.channel() !== ch) return;
       // Media still flowing = they're here; presence blips when their channel reconnects.
       if (room.peer.pc.connectionState === "connected") return;
       const present = Object.keys(ch.presenceState() || {}).length;
       if (present < 2) status(partnerLabel() + " left the room.");
     });
-
-  ch.subscribe((st) => {
-    if (!room || room.channel !== ch) return; // superseded by a rebuilt channel, or we left
-    if (st === "SUBSCRIBED") onChannelJoined(ch);
-    else if (st === "CHANNEL_ERROR" || st === "TIMED_OUT" || st === "CLOSED") onChannelTrouble(st);
-  });
 }
 
 function onChannelJoined(ch) {
-  room.channelJoined = true;
-  room.repairAttempt = 0;
-  clearTimeout(room.repairTimer);
-  room.repairTimer = null;
+  if (!room) return;
   // Presence is kept only for the nice "left the room" signal; the rendezvous
   // itself is the broadcast handshake.
   try { const p = ch.track({ at: Date.now() }); if (p && p.catch) p.catch(() => {}); } catch (_) {}
@@ -377,32 +389,96 @@ function onChannelJoined(ch) {
   room.peer.kick();
 }
 
-// CHANNEL_ERROR / TIMED_OUT: supabase-js retries the join on its own, but with
-// an expired token it never succeeds. CLOSED: the server dropped the channel
-// (token expiry does exactly this) and nothing retries. Either way: refresh the
-// token, give the built-in retry a moment, then rebuild the channel.
-function onChannelTrouble(st) {
-  room.channelJoined = false;
-  console.warn("[hangout] signaling channel " + st);
-  keepAuthFresh();
-  if (room.repairTimer) return;
-  const wait = st === "CLOSED" ? 1000 : Math.min(5000 * 2 ** room.repairAttempt, 30000);
-  room.repairTimer = setTimeout(repairChannel, wait);
+// ---- microphone ----
+// "Voice isn't clear" is often the device, not the network: the moment a
+// Bluetooth earbud mic opens, the earbuds drop to hands-free mode and both
+// directions sound like a 2005 phone call. The picker lets you keep earbuds
+// for listening and talk into the laptop/phone mic; the hint suggests it.
+
+async function refreshMicPicker() {
+  if (!room || !navigator.mediaDevices.enumerateDevices) return;
+  let devices;
+  try { devices = await navigator.mediaDevices.enumerateDevices(); } catch (_) { return; }
+  if (!room) return;
+  const mics = devices.filter((d) => d.kind === "audioinput" && d.deviceId);
+  const track = room.localStream.getAudioTracks()[0];
+  const currentId = track && track.getSettings ? track.getSettings().deviceId : "";
+
+  const sel = $("hg-mic-pick"), wrap = $("hg-mic-pick-wrap");
+  if (sel) {
+    sel.innerHTML = "";
+    mics.forEach((d, i) => {
+      const o = document.createElement("option");
+      o.value = d.deviceId;
+      o.textContent = d.label || "microphone " + (i + 1);
+      sel.appendChild(o);
+    });
+    if (currentId) sel.value = currentId;
+  }
+  if (wrap) wrap.hidden = mics.length < 2;
+
+  // Bluetooth hint: current mic looks like earbuds and a non-earbud one exists.
+  const hint = $("hg-bt-hint");
+  if (!hint) return;
+  const current = mics.find((d) => d.deviceId === currentId);
+  const currentLabel = (current && current.label) || (track && track.label) || "";
+  const others = mics.filter((d) => !PSEUDO_MIC_IDS.has(d.deviceId) && d.label && !BLUETOOTH_MIC.test(d.label));
+  const better = (!room.btHintDismissed && BLUETOOTH_MIC.test(currentLabel))
+    ? (others.find((d) => BUILT_IN_MIC.test(d.label)) || others[0]) : null;
+  hint.hidden = !better;
+  if (!better) return;
+  $("hg-bt-hint-text").textContent =
+    "Earbud mics put earbuds in low-quality call mode — for you and your partner. " +
+    "Talk into “" + better.label + "” and keep the earbuds for listening?";
+  $("hg-bt-switch").onclick = () => switchMic(better.deviceId);
 }
 
-async function repairChannel() {
+async function switchMic(deviceId) {
   if (!room) return;
-  room.repairTimer = null;
-  if (room.channelJoined) return;
-  room.repairAttempt++;
-  await keepAuthFresh();
-  if (!room || room.channelJoined) return;
-  console.warn("[hangout] rebuilding signaling channel (attempt " + room.repairAttempt + ")");
-  const old = room.channel;
-  room.channel = null; // the old channel's callbacks now see themselves as superseded
-  try { await supabase.removeChannel(old); } catch (_) {}
-  if (!room || room.channel) return;
-  openChannel();
+  const old = room.localStream.getAudioTracks()[0];
+  let fresh = null;
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({ audio: voiceConstraints(deviceId, true) });
+    fresh = s.getAudioTracks()[0];
+  } catch (err) {
+    console.warn("[hangout] couldn't switch microphone", err);
+  }
+  if (!room) { if (fresh) fresh.stop(); return; }
+  if (!fresh) { status("couldn't switch microphone — kept the current one."); refreshMicPicker(); return; }
+  adoptMicTrack(fresh, old);
+  saveMicPref(deviceId);
+  refreshMicPicker();
+}
+
+// Swap the mic under the existing sender: no renegotiation, the partner just
+// hears the new mic. Mute state carries over.
+function adoptMicTrack(fresh, old) {
+  fresh.enabled = old ? old.enabled : true;
+  fresh.onended = onMicLost;
+  if (room.micSender) room.micSender.replaceTrack(fresh).catch((err) => console.warn("[hangout] replaceTrack", err));
+  if (old) {
+    old.onended = null;
+    room.localStream.removeTrack(old);
+    old.stop();
+  }
+  room.localStream.addTrack(fresh);
+}
+
+// Earbuds died / headset unplugged mid-call: the mic track ends and the
+// partner would hear silence for the rest of the call. Fall back to the
+// default mic. (track.stop() doesn't fire "ended", so our own swaps don't land here.)
+async function onMicLost() {
+  if (!room) return;
+  console.warn("[hangout] microphone disconnected — switching to the default one");
+  const old = room.localStream.getAudioTracks()[0];
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({ audio: voiceConstraints("", false) });
+    if (!room) { s.getTracks().forEach((t) => t.stop()); return; }
+    adoptMicTrack(s.getAudioTracks()[0], old);
+  } catch (err) {
+    if (room) status("your microphone disconnected — pick another one below.");
+  }
+  refreshMicPicker();
 }
 
 // ---- call quality ----
@@ -514,6 +590,10 @@ function wireControls() {
     setLabel(cam, tr.enabled ? "camera on" : "camera off");
   };
   scr.onclick = () => { if (room) (room.screenStream ? stopScreen() : startScreen()); };
+  const micPick = $("hg-mic-pick");
+  if (micPick) micPick.onchange = () => switchMic(micPick.value);
+  const btDismiss = $("hg-bt-dismiss");
+  if (btDismiss) btDismiss.onclick = () => { if (room) room.btHintDismissed = true; $("hg-bt-hint").hidden = true; };
   // NOTE: leave button (#hg-hangup) is wired in main.js at module load so it
   // works even if getUserMedia fails and this wireControls() never runs.
 
@@ -605,17 +685,16 @@ export function closeHangout() {
   const r = room;
   room = null; // first, so late channel/peer callbacks bail
   const exit = r._onExit;
-  clearInterval(r.authTimer);
   clearInterval(r.qualityTimer);
-  clearTimeout(r.repairTimer);
+  if (navigator.mediaDevices.removeEventListener) navigator.mediaDevices.removeEventListener("devicechange", refreshMicPicker);
   // Let the partner reset right away instead of waiting for ICE to time out.
-  try { r.channel && r.channel.send({ type: "broadcast", event: "bye", payload: { from: r.me, since: r.since } }); } catch (_) {}
+  try { r.rt && r.rt.send({ type: "broadcast", event: "bye", payload: { from: r.me, since: r.since } }); } catch (_) {}
   try { if (r.screenStream) r.screenStream.getTracks().forEach((t) => t.stop()); } catch (_) {}
-  try { r.localStream.getTracks().forEach((t) => t.stop()); } catch (_) {}
+  try { r.localStream.getTracks().forEach((t) => { t.onended = null; t.stop(); }); } catch (_) {}
   try { r.peer.close(); } catch (_) {}
-  if (r.channel) {
-    try { r.channel.untrack(); } catch (_) {}
-    try { supabase.removeChannel(r.channel); } catch (_) {}
+  if (r.rt) {
+    try { const ch = r.rt.channel(); if (ch) ch.untrack(); } catch (_) {}
+    r.rt.close();
   }
   const remoteEl = $("hg-remote"), localEl = $("hg-local"), scv = $("hg-screencast"), stage = $("hg-stage");
   if (remoteEl) remoteEl.srcObject = null;
@@ -632,5 +711,8 @@ export function closeHangout() {
   setScreenButton(false);
   const net = $("hg-net");
   if (net) { net.textContent = ""; net.dataset.level = ""; }
+  const micWrap = $("hg-mic-pick-wrap"), hint = $("hg-bt-hint");
+  if (micWrap) micWrap.hidden = true;
+  if (hint) hint.hidden = true;
   if (typeof exit === "function") exit();
 }

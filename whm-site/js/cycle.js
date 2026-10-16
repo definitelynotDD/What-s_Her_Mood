@@ -11,6 +11,7 @@
 // medical device.
 // ─────────────────────────────────────────────────────────────
 import { supabase } from "./supabase-init.js";
+import { keepSubscribed, onlyWhenChanged } from "./realtime.js";
 
 export const DEFAULTS = { cycleLength: 28, periodLength: 5 };
 
@@ -106,20 +107,25 @@ export async function deletePeriodStart(id) {
 export function watchCycle(userId, cb) {
   let settings = null;
   let starts = [];
-  const push = () => cb({ settings, starts });
+  const changed = onlyWhenChanged(cb);
+  const push = () => changed({ settings, starts });
 
-  Promise.all([fetchSettings(userId), fetchStarts(userId)])
+  const load = () => Promise.all([fetchSettings(userId), fetchStarts(userId)])
     .then(([s, list]) => { settings = s; starts = list; push(); })
     .catch(() => push());
 
-  const channel = supabase.channel("cycle:" + userId)
-    .on("postgres_changes",
-        { event: "*", schema: "public", table: "cycle_settings", filter: "user_id=eq." + userId },
-        async () => { settings = await fetchSettings(userId); push(); })
-    .on("postgres_changes",
-        { event: "*", schema: "public", table: "period_starts", filter: "user_id=eq." + userId },
-        async () => { starts = await fetchStarts(userId); push(); })
-    .subscribe();
+  load();
+  const sub = keepSubscribed("cycle:" + userId, {
+    setup: (ch) => ch
+      .on("postgres_changes",
+          { event: "*", schema: "public", table: "cycle_settings", filter: "user_id=eq." + userId },
+          async () => { settings = await fetchSettings(userId); push(); })
+      .on("postgres_changes",
+          { event: "*", schema: "public", table: "period_starts", filter: "user_id=eq." + userId },
+          async () => { starts = await fetchStarts(userId); push(); }),
+    // Changes made before/while the channel was down are never replayed — re-read.
+    onJoin: load,
+  });
 
-  return () => { supabase.removeChannel(channel); };
+  return () => sub.close();
 }

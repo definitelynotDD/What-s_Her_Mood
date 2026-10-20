@@ -355,10 +355,14 @@ function wireChannel(ch) {
       refreshStage();
     })
     .on("broadcast", { event: "heart" }, ({ payload }) => {
-      if (acceptFromPartner(payload) && payload.x != null && payload.y != null) {
-        const stage = $("hg-stage");
-        if (stage) spawnHeartsAt(stage, payload.x, payload.y);
-      }
+      if (!acceptFromPartner(payload)) return;
+      const stage = $("hg-stage");
+      if (!stage) return;
+      // Land on the face that was tapped; fall back to the same stage spot
+      // (taps on the screen share, or a partner on an older build).
+      const pos = placeOnFace(payload) ||
+        (Number.isFinite(payload.x) && Number.isFinite(payload.y) ? { xPct: payload.x, yPct: payload.y } : null);
+      if (pos) spawnHeartsAt(stage, pos.xPct, pos.yPct);
     })
     .on("broadcast", { event: "bye" }, ({ payload }) => {
       if (!room || !payload || payload.from === room.me) return;
@@ -479,6 +483,55 @@ async function onMicLost() {
     if (room) status("your microphone disconnected — pick another one below.");
   }
   refreshMicPicker();
+}
+
+// ---- hearts ----
+// Hearts stick to the face you tapped. Your big video is your partner and the
+// corner one is you, but on their screen it's the other way round — so a
+// stage-% position put hearts meant for her on your face. Taps on a face are
+// sent as coordinates in that person's camera image instead ("yours" = the
+// receiver's face, "mine" = the sender's), and the receiver maps them onto
+// whichever of its videos shows that face. Both videos use object-fit: cover
+// (each crops the image differently) and your own preview is mirrored.
+
+function coverBox(video) {
+  const W = video.clientWidth, H = video.clientHeight;
+  const vw = video.videoWidth || W, vh = video.videoHeight || H;
+  const scale = Math.max(W / vw, H / vh);
+  const dw = vw * scale, dh = vh * scale;
+  return { W, H, dw, dh, ox: (W - dw) / 2, oy: (H - dh) / 2 };
+}
+
+function isMirrored(video) {
+  const t = getComputedStyle(video).transform;
+  return !!t && t.startsWith("matrix(-1");
+}
+
+// Which face (if any) is under the pointer, as camera-image coordinates.
+function faceUnderPointer(e) {
+  const wrap = document.elementsFromPoint(e.clientX, e.clientY)
+    .find((el) => el.classList && (el.classList.contains("hg-remote-wrap") || el.classList.contains("hg-local-wrap")));
+  const video = wrap && wrap.querySelector("video");
+  if (!video || !video.srcObject || !video.clientWidth) return null;
+  const r = video.getBoundingClientRect(), b = coverBox(video);
+  let u = (e.clientX - r.left - b.ox) / b.dw;
+  const v = (e.clientY - r.top - b.oy) / b.dh;
+  if (isMirrored(video)) u = 1 - u;
+  return { face: wrap.classList.contains("hg-local-wrap") ? "mine" : "yours", u, v };
+}
+
+// Partner's tap → stage % on our screen, on the same person's face.
+function placeOnFace(p) {
+  if ((p.face !== "yours" && p.face !== "mine") || !Number.isFinite(p.u) || !Number.isFinite(p.v)) return null;
+  const video = $(p.face === "yours" ? "hg-local" : "hg-remote");
+  const stage = $("hg-stage");
+  if (!video || !stage || !video.clientWidth) return null;
+  const b = coverBox(video);
+  const u = Math.min(1, Math.max(0, p.u)), v = Math.min(1, Math.max(0, p.v));
+  const x = Math.min(b.W, Math.max(0, b.ox + (isMirrored(video) ? 1 - u : u) * b.dw));
+  const y = Math.min(b.H, Math.max(0, b.oy + v * b.dh));
+  const vr = video.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+  return { xPct: ((vr.left - sr.left + x) / sr.width) * 100, yPct: ((vr.top - sr.top + y) / sr.height) * 100 };
 }
 
 // ---- call quality ----
@@ -615,17 +668,17 @@ function wireControls() {
   };
 
   // Floating hearts: tap the stage → hearts float up from the tap point, and
-  // the partner sees the same hearts at the same coords (broadcast the %-based
-  // position over the room channel). Wired once — it used to stack another
-  // listener on every rejoin, sending N hearts per tap. pointerdown also stops
-  // phones firing touchstart + mousedown for a single tap.
+  // the partner sees them on the same face (see "hearts" above; the stage-%
+  // x/y rides along for screen-share taps and older builds). Wired once — it
+  // used to stack another listener on every rejoin, sending N hearts per tap.
+  // pointerdown also stops phones firing touchstart + mousedown for one tap.
   const stage = $("hg-stage");
   if (stage && !heartsWired) {
     heartsWired = true;
     stage.addEventListener("pointerdown", (e) => {
       if (!room) return;
       const pos = spawnHearts(stage, e);
-      if (pos) send("heart", { x: pos.xPct, y: pos.yPct });
+      if (pos) send("heart", { x: pos.xPct, y: pos.yPct, ...(faceUnderPointer(e) || {}) });
     });
   }
 }

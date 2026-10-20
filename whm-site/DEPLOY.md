@@ -20,34 +20,38 @@ For a private two-person app that's extra friction.
 ## 2. Deploy the folder (Netlify)
 
 The live site is [`whm-couple.netlify.app`](https://whm-couple.netlify.app)
-(site id `67ba4904-c92b-4016-92c6-c4b019042b9a`, team `definitelynotdd`).
-`netlify.toml` at the repo root pins `publish = whm-site` so the correct folder
-ships.
+(site id `bc6a3cca-6842-4ce3-9465-9aedf9fad8af`, team `definitelynotdd`). It's
+**connected to GitHub: every push to `main` builds and goes live** (~15 s).
+`netlify.toml` at the repo root pins `publish = whm-site` and the build command.
 
-**Second, GitHub-connected project:** `incomparable-sunshine-d93004`
-(site id `bc6a3cca-6842-4ce3-9465-9aedf9fad8af`, same team) builds **every
-push to `main`** automatically. `config.js` isn't in GitHub, so its build
-command (`scripts/write-config.mjs`, set in `netlify.toml`) writes one from the
-project's env vars: `WHM_SUPABASE_URL`, `WHM_SUPABASE_ANON_KEY`, and optionally
-`WHM_ICE_SERVERS` (JSON array) / `WHM_ICE_SERVERS_URL`. Change config there
-(Project configuration → Environment variables), then trigger a deploy. If the
-vars are missing the build fails on purpose and the previous deploy stays live.
+`config.js` isn't in GitHub, so the build command (`scripts/write-config.mjs`)
+writes one from the project's env vars: `WHM_SUPABASE_URL`,
+`WHM_SUPABASE_ANON_KEY`, and optionally `WHM_ICE_SERVERS` (JSON array) /
+`WHM_ICE_SERVERS_URL`. Change config there (Project configuration →
+Environment variables), then Deploys → Trigger deploy. If the vars are missing
+the build fails on purpose and the previous deploy stays live.
 
-Three ways to redeploy, pick whichever fits:
+(Until 20 Oct 2026 the live address belonged to a manual-upload project; that
+one is now `whm-couple-old.netlify.app`, site id
+`67ba4904-c92b-4016-92c6-c4b019042b9a`, frozen on the 8 Aug build.)
+
+Normally you don't deploy by hand — merge to `main`. Fallbacks:
 
 - **Netlify MCP (default, from Claude):** ask Claude to "redeploy whm-site" —
   it calls the deploy-site MCP tool which returns a shell command, then runs
   it. Uploads the whm-site folder and waits for the deploy to finish. No
   browser or CLI auth needed. Each deploy runs through Netlify's build pipeline
   (~2 build min out of the 300/mo Starter quota).
-- **Netlify CLI:** `npx -y netlify-cli deploy --site 67ba4904-c92b-4016-92c6-c4b019042b9a --dir whm-site --prod`
-  (`netlify-cli login` once first). Plain upload, no build minutes charged.
+- **Netlify CLI:** `npx -y netlify-cli deploy --site bc6a3cca-6842-4ce3-9465-9aedf9fad8af --dir whm-site --prod`
+  (`netlify-cli login` once first). Plain upload of your local folder (needs
+  your local `config.js`), no build minutes charged. The next push to `main`
+  replaces it.
 - **Drag-and-drop:** <https://app.netlify.com/drop> → drag the **`whm-site`**
   folder onto the Deploys tab of the existing site. Also no build minutes.
 
-> `config.js` is git-ignored but **must** be in the folder that ships — that's
-> how the deployed app gets its Supabase URL + key. Netlify preserves it because
-> the deploy just uploads the folder contents verbatim.
+> For the manual fallbacks, `config.js` is git-ignored but **must** be in the
+> folder that ships — that's how the deployed app gets its Supabase URL + key.
+> GitHub builds generate it from the env vars instead.
 
 ## 3. (Only if email confirmation is ON) Set the Site URL
 

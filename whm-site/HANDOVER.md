@@ -24,15 +24,12 @@ started as a stretch feature and now works end-to-end.
   `whm_stage2_cycle_todos`), `config.js` has the project URL + anon key. All
   security-advisor findings are intentional (the guarded `claim_partner` RPC)
   or optional (leaked-password protection).
-- **Hosting (GitHub-connected):** `incomparable-sunshine-d93004.netlify.app`
-  (site id `bc6a3cca-6842-4ce3-9465-9aedf9fad8af`) deploys every push to
-  `main`; its `config.js` is generated at build time from Netlify env vars
-  (`scripts/write-config.mjs`, see `DEPLOY.md`).
-- **Hosting (manual uploads):** [whm-couple.netlify.app](https://whm-couple.netlify.app) —
-  Netlify site id `67ba4904-c92b-4016-92c6-c4b019042b9a`, team
-  `definitelynotdd`. `netlify.toml` at the repo root pins `publish = whm-site`
-  so the correct folder ships. Default deploy path is the Netlify MCP tool
-  (see `DEPLOY.md`); costs ~2 build min out of the 300/mo Starter quota.
+- **Hosting:** [whm-couple.netlify.app](https://whm-couple.netlify.app) —
+  Netlify site id `bc6a3cca-6842-4ce3-9465-9aedf9fad8af`, team
+  `definitelynotdd`, **connected to GitHub: every push to `main` deploys**.
+  Its `config.js` is generated at build time from Netlify env vars
+  (`scripts/write-config.mjs`, see `DEPLOY.md`). The previous manual-upload
+  project is `whm-couple-old.netlify.app` (`67ba4904-…`), frozen on 8 Aug.
 - **Frontend:** `index.html` + `css/` + `js/` — one folder, `whm-site/`. Modules:
   `supabase-init.js`, `auth.js`, `pairing.js`, `main.js` (Stage 1 core);
   `cycle.js` + `todos.js` + `tracker.js` (Stage 2); `rtc.js` + `hangout.js`

@@ -227,13 +227,16 @@ returns the right shape directly; `{ iceServers }` / `{ ice_servers }` bodies
 also work. Falls back to `config.webrtc.iceServers` on any error.
 
 **Special days (`js/celebrate.js`).** On dates listed in
-`config.celebrations` (Netlify env var `WHM_CELEBRATIONS`, e.g.
-`[{"date":"2023-02-14","title":"happy {years}-year anniversary ♡"}]`) a
-signed-in, paired couple gets a 7 s canvas fireworks + heart shower on load and
-a banner under the title for the day (tap to replay). `YYYY-MM-DD` repeats
-yearly; `{years}` counts from the year. Viewer's local date; Feb 29 → Feb 28 in
-other years; reduced-motion users get the banner only. `?celebrate` previews
-it any day. Kept out of code on purpose — the repo is public. A settings
+`config.celebrations` (Netlify env var `WHM_CELEBRATIONS`; live value: the
+21st and 10th of every month at India midnight, counting from 21 Nov 2025 and
+10 Dec 2025) a signed-in, paired couple gets a 7 s canvas fireworks + heart
+shower and a banner (header + cozy room) for the day, tap to replay. Entries:
+`{date:"YYYY-MM-DD", every:"month"|"year", timeZone:"Asia/Kolkata", title}`
+with `{since}` ("11 months" / "1 year 2 months"), `{months}`, `{years}`. The
+app watches the clock while open, so the show starts at midnight even mid-call
+(held until the tab is visible) and the banner leaves when the day ends.
+Nothing before/on the start date; days past a month's end land on its last
+day; reduced-motion users get the banner only. `?celebrate` previews it. Kept out of code on purpose — the repo is public. A settings
 screen can later write the same shape (README plans `anniversaryDate` on a
 `couples` doc).
 

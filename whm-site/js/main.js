@@ -6,7 +6,7 @@ import { watchMyUserRow, claimPartnerCode } from "./pairing.js";
 import { openHangout, closeHangout } from "./hangout.js";
 import { mountTracker, unmountTracker } from "./tracker.js";
 import { mountMascot } from "./mascot.js";
-import { celebrateIfToday, resetCelebration } from "./celebrate.js";
+import { startCelebrations, stopCelebrations } from "./celebrate.js";
 
 const $ = (sel) => document.querySelector(sel);
 const show = (el) => { if (el) el.hidden = false; };
@@ -99,8 +99,9 @@ async function renderUserRow(row) {
   // "you're paired with dev ♡" line gets its beat. On unpair, snap back to pair.
   if (!wasPaired && currentPairing) setSubview("pair");
   if (wasPaired && !currentPairing)  setSubview("pair");
-  // Anniversary & co: fireworks + banner, once per load (see celebrate.js).
-  if (currentPairing) celebrateIfToday();
+  // Special days: fireworks + banner on load, and at midnight if the app is
+  // already open — cozy room included (see celebrate.js).
+  if (currentPairing) startCelebrations();
   // Tabs are gated on paired-ness; re-evaluate the chrome now that state changed.
   showScreen(currentScreen);
 }
@@ -110,7 +111,7 @@ watchAuth((user) => {
   if (!user) {
     closeHangout();
     unmountTracker();
-    resetCelebration();
+    stopCelebrations();
     currentPairing = null;
     showScreen("welcome");
     return;

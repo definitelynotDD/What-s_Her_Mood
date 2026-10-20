@@ -31,11 +31,12 @@ window.WHM_CONFIG = {
     iceServersUrl: ""
   },
   // Special days: fireworks + hearts + a banner on these dates (js/celebrate.js).
-  // "YYYY-MM-DD" repeats yearly; the year only feeds {years}. Preview any day
-  // with ?celebrate in the URL.
+  // every: "year" (default) or "month"; timeZone: whose midnight starts the
+  // day (default: the viewer's). {since} → "11 months" / "1 year 2 months".
+  // Preview any day with ?celebrate in the URL.
   celebrations: [
-    // { date: "2023-02-14", title: "happy {years}-year anniversary ♡" },
-    // { date: "06-01", title: "happy birthday ♡" }
+    // { date: "2025-11-21", every: "month", timeZone: "Asia/Kolkata", title: "happy {since} ♡" },
+    // { date: "2023-02-14", title: "happy {years}-year anniversary ♡" }
   ],
   gemini: { apiKey: "" }   // leave empty until Stage 5
 };

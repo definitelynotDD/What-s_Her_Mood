@@ -49,6 +49,9 @@
 .cel-banner[hidden] { display: none; }
 .cel-banner-text { font-size: 22px; line-height: 1.1; }
 .cel-banner-spark { color: var(--honey); font-size: 14px; }
+/* smaller one in the cozy-room header */
+.cel-banner-sm { margin-top: 6px; padding: 4px 12px 4px 14px; }
+.cel-banner-sm .cel-banner-text { font-size: 18px; }
 .cel-banner:focus-visible { outline: 0; box-shadow: 0 0 0 3px rgba(194, 136, 47, 0.35); }
 
 .wm-heart {

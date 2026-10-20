@@ -18,7 +18,7 @@
   <header id="app-header" class="app-header" hidden>
     <p class="app-header-kicker hand">a cozy field manual, now with more pulse</p>
     <h1 class="app-title serif">What's Her Mood <span class="app-title-tag">— cuter</span></h1>
-    <button id="cel-banner" type="button" class="cel-banner" title="play it again" hidden>
+    <button id="cel-banner" type="button" class="cel-banner" title="play it again" data-cel-banner hidden>
       <span class="cel-banner-text hand"></span><span class="cel-banner-spark" aria-hidden="true">✦</span>
     </button>
     <nav id="app-tabs" class="app-tabs" aria-label="sections" hidden>
@@ -146,6 +146,9 @@
         <div>
           <p class="hg-title serif">hangout</p>
           <p class="hg-sub hand">just the two of you ✿</p>
+          <button id="cel-banner-hg" type="button" class="cel-banner cel-banner-sm" title="play it again" data-cel-banner hidden>
+            <span class="cel-banner-text hand"></span><span class="cel-banner-spark" aria-hidden="true">✦</span>
+          </button>
           <p class="muted small"><span id="hg-status">…</span><span id="hg-net" class="hg-net" title="connection · partner's voice · round-trip time"></span></p>
         </div>
         <button id="hg-hangup" class="btn-link hg-leave">leave</button>

@@ -27,7 +27,8 @@ The live site is [`whm-couple.netlify.app`](https://whm-couple.netlify.app)
 `config.js` isn't in GitHub, so the build command (`scripts/write-config.mjs`)
 writes one from the project's env vars: `WHM_SUPABASE_URL`,
 `WHM_SUPABASE_ANON_KEY`, and optionally `WHM_ICE_SERVERS` (JSON array) /
-`WHM_ICE_SERVERS_URL`. Change config there (Project configuration →
+`WHM_ICE_SERVERS_URL` / `WHM_CELEBRATIONS` (JSON array of special days, see
+`js/celebrate.js`). Change config there (Project configuration →
 Environment variables), then Deploys → Trigger deploy. If the vars are missing
 the build fails on purpose and the previous deploy stays live.
 

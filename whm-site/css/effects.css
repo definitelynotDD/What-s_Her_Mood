@@ -20,6 +20,37 @@
   will-change: transform, opacity;
 }
 
+/* special-day show (celebrate.js): full-screen, never blocks taps */
+.cel-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 60;
+}
+.cel-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.cel-layer .wm-hearts-layer { z-index: 1; }
+
+/* banner under the title on the day — tap to replay */
+.cel-banner {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px 6px 18px;
+  border: 1px solid var(--honey);
+  border-radius: 999px;
+  background: var(--honey-soft);
+  color: var(--honey-ink);
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(194, 136, 47, 0.18);
+  animation: popIn .5s cubic-bezier(.3, .7, .4, 1.4);
+}
+.cel-banner[hidden] { display: none; }
+.cel-banner-text { font-size: 22px; line-height: 1.1; }
+.cel-banner-spark { color: var(--honey); font-size: 14px; }
+.cel-banner:focus-visible { outline: 0; box-shadow: 0 0 0 3px rgba(194, 136, 47, 0.35); }
+
 .wm-heart {
   position: absolute;
   /* left + top come from JS (percent-based on the stage) so each heart starts

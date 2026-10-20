@@ -8,6 +8,7 @@
 //   WHM_SUPABASE_ANON_KEY  required (public by design — RLS protects the data)
 //   WHM_ICE_SERVERS        optional, JSON array of RTCIceServer objects
 //   WHM_ICE_SERVERS_URL    optional, see config.example.js (iceServersUrl)
+//   WHM_CELEBRATIONS       optional, JSON array of special days (see js/celebrate.js)
 //
 // An existing config.js (local dev, or an upload that included one) is left
 // alone. Missing vars fail the build on purpose: Netlify then keeps the
@@ -41,9 +42,21 @@ if (env.WHM_ICE_SERVERS) {
   }
 }
 
+let celebrations = [];
+if (env.WHM_CELEBRATIONS) {
+  try {
+    celebrations = JSON.parse(env.WHM_CELEBRATIONS);
+    if (!Array.isArray(celebrations)) throw new Error("not an array");
+  } catch (err) {
+    console.error("[write-config] WHM_CELEBRATIONS isn't a JSON array: " + err.message);
+    process.exit(1);
+  }
+}
+
 const config = {
   supabase: { url: env.WHM_SUPABASE_URL, anonKey: env.WHM_SUPABASE_ANON_KEY },
   webrtc: { iceServers, ...(env.WHM_ICE_SERVERS_URL ? { iceServersUrl: env.WHM_ICE_SERVERS_URL } : {}) },
+  celebrations,
   gemini: { apiKey: "" },
 };
 
@@ -52,4 +65,4 @@ writeFileSync(out,
   "// Change the env vars, not this file.\n" +
   "window.WHM_CONFIG = " + JSON.stringify(config, null, 2) + ";\n");
 console.log("[write-config] wrote whm-site/config.js (" + iceServers.length + " ICE servers" +
-  (env.WHM_ICE_SERVERS_URL ? ", + iceServersUrl" : "") + ")");
+  (env.WHM_ICE_SERVERS_URL ? ", + iceServersUrl" : "") + ", " + celebrations.length + " celebration days)");

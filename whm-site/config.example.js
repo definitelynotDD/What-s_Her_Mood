@@ -30,5 +30,12 @@ window.WHM_CONFIG = {
     //   "https://YOURAPP.metered.live/api/v1/turn/credentials?apiKey=YOUR_KEY"
     iceServersUrl: ""
   },
+  // Special days: fireworks + hearts + a banner on these dates (js/celebrate.js).
+  // "YYYY-MM-DD" repeats yearly; the year only feeds {years}. Preview any day
+  // with ?celebrate in the URL.
+  celebrations: [
+    // { date: "2023-02-14", title: "happy {years}-year anniversary ♡" },
+    // { date: "06-01", title: "happy birthday ♡" }
+  ],
   gemini: { apiKey: "" }   // leave empty until Stage 5
 };

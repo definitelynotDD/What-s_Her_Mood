@@ -64,7 +64,7 @@ export function spawnHearts(host, event, count = 6) {
 
 // Same, but from explicit percentages — used by the "heart" broadcast handler
 // so the partner sees hearts at the exact spot you tapped.
-export function spawnHeartsAt(host, xPct, yPct, count = 6) {
+export function spawnHeartsAt(host, xPct, yPct, count = 6, colors = HEART_COLORS) {
   if (!host) return;
   const layer = ensureLayer(host, "wm-hearts-layer");
   const spawns = [];
@@ -76,7 +76,7 @@ export function spawnHeartsAt(host, xPct, yPct, count = 6) {
       left: `${clamp(xPct + rand(-5, 5), 2, 98)}%`,
       top:  `${clamp(yPct + rand(-4, 4), 2, 98)}%`,
       fontSize: `${rand(20, 42)}px`,
-      color: HEART_COLORS[(Math.random() * HEART_COLORS.length) | 0],
+      color: colors[(Math.random() * colors.length) | 0],
     });
     el.style.setProperty("--drift", `${rand(-70, 70)}px`);
     el.style.setProperty("--r",     `${rand(-20, 20)}deg`);

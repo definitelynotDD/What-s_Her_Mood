@@ -226,6 +226,17 @@ start of each hangout for fresh TURN credentials — Metered's credentials URL
 returns the right shape directly; `{ iceServers }` / `{ ice_servers }` bodies
 also work. Falls back to `config.webrtc.iceServers` on any error.
 
+**Special days (`js/celebrate.js`).** On dates listed in
+`config.celebrations` (Netlify env var `WHM_CELEBRATIONS`, e.g.
+`[{"date":"2023-02-14","title":"happy {years}-year anniversary ♡"}]`) a
+signed-in, paired couple gets a 7 s canvas fireworks + heart shower on load and
+a banner under the title for the day (tap to replay). `YYYY-MM-DD` repeats
+yearly; `{years}` counts from the year. Viewer's local date; Feb 29 → Feb 28 in
+other years; reduced-motion users get the banner only. `?celebrate` previews
+it any day. Kept out of code on purpose — the repo is public. A settings
+screen can later write the same shape (README plans `anniversaryDate` on a
+`couples` doc).
+
 **Testing the hangout without Supabase.** The resilience paths were verified
 with two Chromium tabs (Playwright, fake camera/mic/screen) running the real
 `hangout.js` + `rtc.js`, with `supabase-init.js` swapped for a

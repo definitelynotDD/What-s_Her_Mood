@@ -24,7 +24,11 @@ started as a stretch feature and now works end-to-end.
   `whm_stage2_cycle_todos`), `config.js` has the project URL + anon key. All
   security-advisor findings are intentional (the guarded `claim_partner` RPC)
   or optional (leaked-password protection).
-- **Hosting:** [whm-couple.netlify.app](https://whm-couple.netlify.app) —
+- **Hosting (GitHub-connected):** `incomparable-sunshine-d93004.netlify.app`
+  (site id `bc6a3cca-6842-4ce3-9465-9aedf9fad8af`) deploys every push to
+  `main`; its `config.js` is generated at build time from Netlify env vars
+  (`scripts/write-config.mjs`, see `DEPLOY.md`).
+- **Hosting (manual uploads):** [whm-couple.netlify.app](https://whm-couple.netlify.app) —
   Netlify site id `67ba4904-c92b-4016-92c6-c4b019042b9a`, team
   `definitelynotdd`. `netlify.toml` at the repo root pins `publish = whm-site`
   so the correct folder ships. Default deploy path is the Netlify MCP tool

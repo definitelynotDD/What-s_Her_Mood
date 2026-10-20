@@ -1,4 +1,14 @@
-# Deploy the whm-site folder as-is. No build step — the app is plain
-# HTML + ES modules + supabase-js from a CDN.
+# Deploy the whm-site folder. The app itself has no build step — plain
+# HTML + ES modules + supabase-js from a CDN. The one build command writes
+# whm-site/config.js from the site's Netlify env vars (config.js is
+# git-ignored, so a GitHub-connected deploy wouldn't otherwise have one);
+# it leaves an uploaded config.js alone. See scripts/write-config.mjs.
 [build]
   publish = "whm-site"
+  command = "node scripts/write-config.mjs"
+
+[build.environment]
+  # config.js holds the Supabase URL + anon key, which are public by design
+  # (Row-Level Security protects the data) — don't let secret scanning fail
+  # the build over it.
+  SECRETS_SCAN_OMIT_PATHS = "whm-site/config.js"

@@ -24,6 +24,15 @@ The live site is [`whm-couple.netlify.app`](https://whm-couple.netlify.app)
 `netlify.toml` at the repo root pins `publish = whm-site` so the correct folder
 ships.
 
+**Second, GitHub-connected project:** `incomparable-sunshine-d93004`
+(site id `bc6a3cca-6842-4ce3-9465-9aedf9fad8af`, same team) builds **every
+push to `main`** automatically. `config.js` isn't in GitHub, so its build
+command (`scripts/write-config.mjs`, set in `netlify.toml`) writes one from the
+project's env vars: `WHM_SUPABASE_URL`, `WHM_SUPABASE_ANON_KEY`, and optionally
+`WHM_ICE_SERVERS` (JSON array) / `WHM_ICE_SERVERS_URL`. Change config there
+(Project configuration → Environment variables), then trigger a deploy. If the
+vars are missing the build fails on purpose and the previous deploy stays live.
+
 Three ways to redeploy, pick whichever fits:
 
 - **Netlify MCP (default, from Claude):** ask Claude to "redeploy whm-site" —

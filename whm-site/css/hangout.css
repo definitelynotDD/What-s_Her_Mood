@@ -245,6 +245,115 @@
   box-shadow: 0 0 0 3px rgba(194, 136, 47, 0.18);
 }
 .hg-ctl[hidden] { display: none; }
+.hg-ctl-slap .hg-slap-icon { font-size: 16px; line-height: 1; }
+.hg-ctl-slap:active .hg-slap-icon { transform: rotate(-20deg); }
+
+/* ---- slap (js/slap.js): hand swings onto a face, flash + "SLAP!", shake.
+   Timings line up with HIT_AT_S in slap.js: impact at 22% of 1.1s. ---- */
+.slap-fx {
+  position: absolute;
+  width: var(--slap-size, 120px);
+  height: var(--slap-size, 120px);
+  margin: calc(var(--slap-size, 120px) / -2) 0 0 calc(var(--slap-size, 120px) / -2);
+  z-index: 6;
+  pointer-events: none;
+}
+.slap-hand {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--slap-size, 120px);
+  line-height: 1;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
+  opacity: 0;
+  animation: slapHand 1.1s cubic-bezier(.5, 0, .3, 1) forwards;
+}
+.slap-flash {
+  position: absolute;
+  inset: -35%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(244, 230, 199, 0.6) 30%, transparent 62%);
+  opacity: 0;
+  animation: slapFlash 1.1s ease-out forwards;
+}
+.slap-pow {
+  position: absolute;
+  left: 50%;
+  bottom: 88%;
+  font: 900 calc(var(--slap-size, 120px) * 0.32) 'Nunito', system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  color: var(--honey);
+  -webkit-text-stroke: 2px var(--rust-ink);
+  paint-order: stroke fill;
+  text-shadow: 0 3px 0 var(--rust-ink);
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, 0) rotate(-12deg) scale(.3);
+  animation: slapPow 1.1s ease-out forwards;
+}
+/* reduced motion: just a still "SLAP!" (the sound still plays) */
+.slap-still .slap-hand, .slap-still .slap-flash { display: none; }
+.slap-still .slap-pow { animation: none; opacity: 1; transform: translate(-50%, 0) rotate(-12deg); }
+
+/* red cheek on the face that got hit */
+.slap-hit::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at 50% 45%, rgba(224, 138, 122, 0.6), transparent 60%);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: slapCheek 1.1s ease-out forwards;
+}
+.hg-stage.slap-shake     { animation: slapShake .32s ease-out .24s; }
+.hg-stage.slap-shake-big { animation: slapShakeBig .55s ease-out .24s; }
+
+@keyframes slapHand {
+  0%   { opacity: 0; transform: translate(calc(var(--slap-dir) * -160%), -30%) rotate(calc(var(--slap-dir) * -50deg)) scale(1.15); }
+  12%  { opacity: 1; }
+  22%  { transform: translate(0, 0) rotate(calc(var(--slap-dir) * 18deg)) scale(1); }
+  32%  { transform: translate(calc(var(--slap-dir) * 10%), 4%) rotate(calc(var(--slap-dir) * 10deg)) scale(1); }
+  70%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(var(--slap-dir) * 40%), 20%) rotate(calc(var(--slap-dir) * 30deg)) scale(.9); }
+}
+@keyframes slapFlash {
+  0%, 20% { opacity: 0; transform: scale(.5); }
+  24%     { opacity: 1; transform: scale(.8); }
+  50%     { opacity: 0; transform: scale(1.4); }
+  100%    { opacity: 0; }
+}
+@keyframes slapPow {
+  0%, 20% { opacity: 0; transform: translate(-50%, 0) rotate(-12deg) scale(.3); }
+  28%     { opacity: 1; transform: translate(-50%, 0) rotate(-12deg) scale(1.25); }
+  36%     { transform: translate(-50%, 0) rotate(-12deg) scale(1); }
+  75%     { opacity: 1; }
+  100%    { opacity: 0; transform: translate(-50%, -25%) rotate(-12deg) scale(1); }
+}
+@keyframes slapCheek {
+  0%, 20% { opacity: 0; }
+  26%     { opacity: 1; }
+  100%    { opacity: 0; }
+}
+@keyframes slapShake {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-6px, 2px) rotate(-.6deg); }
+  40% { transform: translate(5px, -2px) rotate(.5deg); }
+  60% { transform: translate(-3px, 1px); }
+  80% { transform: translate(2px, 0); }
+}
+@keyframes slapShakeBig {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-14px, 4px) rotate(-1.5deg); }
+  25% { transform: translate(12px, -4px) rotate(1.2deg); }
+  40% { transform: translate(-9px, 3px) rotate(-.8deg); }
+  55% { transform: translate(7px, -2px) rotate(.5deg); }
+  70% { transform: translate(-4px, 1px); }
+  85% { transform: translate(2px, 0); }
+}
 
 /* volume slider — only appears while someone is sharing screen */
 .hg-vol {

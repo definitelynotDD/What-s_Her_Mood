@@ -19,6 +19,7 @@
 import { createPeer, tuneVoiceSender, setVoicePriority } from "./rtc.js";
 import { keepSubscribed } from "./realtime.js";
 import { spawnHearts, spawnHeartsAt } from "./effects.js";
+import { prepareSlapAudio, playSlap } from "./slap.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -34,6 +35,8 @@ let room = null;     // active room state, or null
 let opening = 0;     // id of an openHangout() still waiting on the camera, 0 = none
 let openSeq = 0;
 let heartsWired = false;
+let lastSlapSent = 0, lastSlapGot = 0;
+const SLAP_COOLDOWN_MS = 1200;
 
 function coupleKey(a, b) { return [a, b].sort().join("__"); }
 
@@ -98,6 +101,9 @@ function playInto(el, stream) {
 export async function openHangout({ me, partner, myName, partnerName, onExit }) {
   if (room || opening) return; // already open / opening
   const seq = opening = ++openSeq;
+  // Still inside the click that opened the room: unlock sound now, so a slap
+  // that arrives later can be heard (browsers block audio without a gesture).
+  prepareSlapAudio();
 
   $("hg-partner").textContent = partnerName || "your partner";
   $("hg-chat-log").innerHTML = "";
@@ -366,6 +372,14 @@ function wireChannel(ch) {
     })
     .on("broadcast", { event: "camera" }, ({ payload }) => {
       if (acceptFromPartner(payload)) applyRemoteCamOff(payload.camOff);
+    })
+    .on("broadcast", { event: "slap" }, ({ payload }) => {
+      if (!acceptFromPartner(payload)) return;
+      const now = Date.now();
+      if (now - lastSlapGot < SLAP_COOLDOWN_MS / 2) return;   // no machine-gun slaps
+      lastSlapGot = now;
+      // It's your face that got slapped — on your screen that's your own preview.
+      playSlap({ stage: $("hg-stage"), target: document.querySelector(".hg-local-wrap"), received: true });
     })
     .on("broadcast", { event: "screen-off" }, ({ payload }) => {
       // Fast path; the track going away does the same thing a moment later.
@@ -666,6 +680,17 @@ function wireControls() {
     send("camera", { camOff: off });
   };
   scr.onclick = () => { if (room) (room.screenStream ? stopScreen() : startScreen()); };
+  const slap = $("hg-slap");
+  if (slap) slap.onclick = () => {
+    if (!room) return;
+    const now = Date.now();
+    if (now - lastSlapSent < SLAP_COOLDOWN_MS) return;
+    lastSlapSent = now;
+    prepareSlapAudio();
+    // On your screen their face is the big video.
+    playSlap({ stage: $("hg-stage"), target: document.querySelector(".hg-remote-wrap"), received: false });
+    send("slap");
+  };
   const micPick = $("hg-mic-pick");
   if (micPick) micPick.onchange = () => switchMic(micPick.value);
   const btDismiss = $("hg-bt-dismiss");
@@ -698,6 +723,10 @@ function wireControls() {
   const stage = $("hg-stage");
   if (stage && !heartsWired) {
     heartsWired = true;
+    // Any tap in the room re-unlocks sound — phones (iOS especially) lock
+    // audio again after the app was in the background, and an incoming slap
+    // can't unlock it by itself.
+    $("screen-hangout").addEventListener("pointerdown", () => { if (room) prepareSlapAudio(); }, { passive: true });
     stage.addEventListener("pointerdown", (e) => {
       if (!room) return;
       const pos = spawnHearts(stage, e);

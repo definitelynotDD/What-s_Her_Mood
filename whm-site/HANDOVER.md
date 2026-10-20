@@ -146,7 +146,11 @@ tab-audio, per-viewer volume slider, muted-pill overlay on either party.
 **Signaling & rendezvous** — one Supabase Realtime channel per couple, keyed
 by the sorted pair of uids (`couple = [a,b].sort().join("__")`). The channel
 carries broadcast events: `hello` (rendezvous), `signal` (SDP + ICE),
-`chat`, `heart`, `mute`, `bye` (left the room), plus screen-lifecycle
+`chat`, `heart` (lands on the tapped face: camera-image coords + whose
+face), `mute`, `camera` (camera-off cover), `slap` (js/slap.js — hand +
+"SLAP!" + shake + Web Audio slap sound, 1.2 s cooldown; sound is unlocked
+by the tap that opens the room and by any tap inside it), `bye` (left the
+room), plus screen-lifecycle
 (`screen-on`, `screen-off`). Every payload carries `from`, `since` (session
 start) and `cam` (the sender's camera MediaStream id, used to route streams).
 

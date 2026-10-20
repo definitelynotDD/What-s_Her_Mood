@@ -102,6 +102,29 @@
   display: none;
 }
 .hg-mute-badge[data-on="1"] { display: inline-block; }
+/* camera off: cover the (now black) video with the stage colour + a centred
+   pill. Sits under the "muted" badge (z 3) so both can show at once. */
+.hg-camoff {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1c1a14 0%, #2a2418 100%);
+  z-index: 2;
+  pointer-events: none;
+}
+.hg-camoff[data-on="1"] { display: flex; }
+.hg-camoff-pill {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(245, 238, 221, 0.14);   /* cream, translucent */
+  border: 1px solid rgba(245, 238, 221, 0.28);
+  color: #F5EEDD;
+  font: 700 12px 'Nunito', system-ui, sans-serif;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
 .hg-screencast {
   display: none;                    /* hidden until someone shares */
   background: #000;

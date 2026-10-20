@@ -195,6 +195,7 @@ function resetPeer() {
   const rv = $("hg-remote");
   if (rv) rv.srcObject = null;
   applyRemoteMute(false);
+  applyRemoteCamOff(false);
   refreshStage();
 }
 
@@ -275,6 +276,20 @@ function micMuted() {
   return !!(tr && !tr.enabled);
 }
 
+// "camera off" cover over a video — the track is only disabled, so without it
+// you'd just see a black box and wonder if the call froze.
+function setCamOffCover(id, off) {
+  if (typeof off !== "boolean") return;
+  const el = $(id);
+  if (el) el.dataset.on = off ? "1" : "0";
+}
+function applyRemoteCamOff(off) { setCamOffCover("hg-remote-camoff", off); }
+
+function camOff() {
+  const tr = room && room.localStream.getVideoTracks()[0];
+  return !!(tr && !tr.enabled);
+}
+
 // ---- signaling channel ----
 
 function send(event, extra) {
@@ -285,7 +300,7 @@ function send(event, extra) {
   });
 }
 
-function sayHello() { send("hello", { muted: micMuted() }); }
+function sayHello() { send("hello", { muted: micMuted(), camOff: camOff() }); }
 
 // Every message from the partner goes through here. Returns false for our own
 // echoes and for stale messages from a session they've since left.
@@ -339,6 +354,7 @@ function wireChannel(ch) {
     .on("broadcast", { event: "hello" }, ({ payload }) => {
       if (!acceptFromPartner(payload)) return;
       applyRemoteMute(payload.muted);
+      applyRemoteCamOff(payload.camOff);
       // They just (re)joined the channel and may have missed our last offer.
       room.peer.kick();
     })
@@ -347,6 +363,9 @@ function wireChannel(ch) {
     })
     .on("broadcast", { event: "mute" }, ({ payload }) => {
       if (acceptFromPartner(payload)) applyRemoteMute(payload.muted);
+    })
+    .on("broadcast", { event: "camera" }, ({ payload }) => {
+      if (acceptFromPartner(payload)) applyRemoteCamOff(payload.camOff);
     })
     .on("broadcast", { event: "screen-off" }, ({ payload }) => {
       // Fast path; the track going away does the same thing a moment later.
@@ -639,8 +658,12 @@ function wireControls() {
     if (!room) return;
     const tr = room.localStream.getVideoTracks()[0]; if (!tr) return;
     tr.enabled = !tr.enabled;
-    cam.dataset.off = tr.enabled ? "0" : "1";
-    setLabel(cam, tr.enabled ? "camera on" : "camera off");
+    const off = !tr.enabled;
+    cam.dataset.off = off ? "1" : "0";
+    setLabel(cam, off ? "camera off" : "camera on");
+    // cover on our own preview, and tell partner so their view of us shows it
+    setCamOffCover("hg-local-camoff", off);
+    send("camera", { camOff: off });
   };
   scr.onclick = () => { if (room) (room.screenStream ? stopScreen() : startScreen()); };
   const micPick = $("hg-mic-pick");
@@ -757,6 +780,8 @@ export function closeHangout() {
   const lm = $("hg-local-mute"), rm = $("hg-remote-mute");
   if (lm) lm.dataset.on = "0";
   if (rm) rm.dataset.on = "0";
+  setCamOffCover("hg-local-camoff", false);
+  setCamOffCover("hg-remote-camoff", false);
   // Fresh tracks next time are on, so the buttons must say so.
   const mic = $("hg-mic"), cam = $("hg-cam");
   if (mic) { mic.dataset.off = "0"; setLabel(mic, "mic on"); }

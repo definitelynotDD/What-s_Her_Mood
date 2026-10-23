@@ -1,0 +1,14 @@
+{
+  "name": "whm-tests",
+  "private": true,
+  "type": "module",
+  "description": "Browser tests for whm-site (two-tab hangout, special days). Not part of the deployed site.",
+  "scripts": {
+    "test": "node run-all.mjs",
+    "test:hangout": "node hangout.test.mjs",
+    "test:celebrate": "node celebrate-dates.test.mjs && node celebrate.test.mjs && node celebrate-clock.test.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}

@@ -244,14 +244,13 @@ day; reduced-motion users get the banner only. `?celebrate` previews it. Kept ou
 screen can later write the same shape (README plans `anniversaryDate` on a
 `couples` doc).
 
-**Testing the hangout without Supabase.** The resilience paths were verified
-with two Chromium tabs (Playwright, fake camera/mic/screen) running the real
-`hangout.js` + `rtc.js`, with `supabase-init.js` swapped for a
-BroadcastChannel mock that can drop messages and kill channels on command. The
-harness isn't committed; rebuild it that way if you change this code. The
-same mock plus a tiny `from()` query stub covers `realtime.js` and the
-pairing / to-do watchers (drop channels, change rows while down, check the
-UI catches up).
+**Tests (`tests/`, outside the published folder).** `cd tests && npm install
+&& npm test`. Two Chromium tabs (Playwright, fake camera/mic/screen) run the
+real `hangout.js` + `rtc.js` against each other, with `supabase-init.js`
+swapped for a BroadcastChannel mock that can drop messages and kill channels on
+command. The same mock plus a tiny `from()` query stub covers `realtime.js` and
+the pairing / to-do watchers, and the special days run on a fake clock. Run
+them before pushing anything that touches the hangout. See `tests/README.md`.
 
 **Watch out for** — the auth listener has to dedupe by uid, otherwise
 `onAuthStateChange` fires on `TOKEN_REFRESHED` (every tab foreground) and the

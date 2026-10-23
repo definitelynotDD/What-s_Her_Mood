@@ -209,6 +209,17 @@ message carries the sender's session start (`since`) so a partner who leaves and
 rejoins gets a fresh RTCPeerConnection on the other side (a `bye` does the same
 immediately); ICE restarts itself on `failed`.
 
+**Calls that never start (Oct 23 fix).** When both open the room at the same
+moment, both send an offer; the polite side rolls its own back, and now and
+then (about 1 in 50 in the test rig) Chrome's candidate gathering on that side
+dies with it. Signaling looks finished, both screens say "connected ♡", but no
+candidate ever goes out, so ICE sits at `new` forever and never reaches
+`failed`; an ICE restart doesn't revive it either. The `rtc.js` connect
+watchdog (impolite side only) notices ICE still at `new` 6 s after negotiation
+and calls `onStuck`; `hangout.js` `startFresh()` then does what a rejoin does —
+bumps `since`, rebuilds the connection, says hello — and the partner rebuilds
+too. Same cure when every ICE candidate is lost in signaling.
+
 **Voice quality.** The mic sender negotiates **RED** (redundant Opus — each
 packet carries the previous frame, so a lost packet is rebuilt instead of heard
 as a glitch; ~2× audio bitrate, verified in Chromium) and runs at

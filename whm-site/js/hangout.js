@@ -172,6 +172,7 @@ function buildPeer() {
     polite: room.polite,
     sendSignal: (sig) => send("signal", { sig }),
     onRemoteStream: (stream) => { if (room && room.peer === peer) routeIncomingStream(stream); },
+    onStuck: () => { if (room && room.peer === peer) startFresh(); },
     onState: (st) => {
       if (!room || room.peer !== peer) return;
       if (st === "connecting") status("connecting…");
@@ -203,6 +204,16 @@ function resetPeer() {
   applyRemoteMute(false);
   applyRemoteCamOff(false);
   refreshStage();
+}
+
+// The connection negotiated but never got going (see rtc.js): rebuild it on
+// both sides, exactly like a rejoin — a newer `since` makes the partner start
+// a fresh connection too, and the hellos re-add everyone's tracks.
+function startFresh() {
+  console.warn("[hangout] connection never started — starting a fresh one");
+  room.since = Date.now();
+  resetPeer();
+  sayHello();
 }
 
 function attachLocalTracks() {

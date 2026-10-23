@@ -15,11 +15,14 @@
 // lost the partner applies it now, and if it was their answer that got lost
 // they've already applied it and simply answer it again — a rolled-back,
 // rebuilt offer would no longer match what they applied and be rejected.
+// A second watchdog covers the opposite wedge: negotiation done, but ICE never
+// starts (no usable candidates) — it asks the caller for a fresh connection.
 // ─────────────────────────────────────────────────────────────
 
 const OFFER_RETRY_MS = [4000, 8000, 15000];   // then every 15s until answered
+const CONNECT_STUCK_MS = 6000;                 // negotiated, but ICE still hasn't started
 
-export function createPeer({ iceServers, polite, sendSignal, onRemoteStream, onState }) {
+export function createPeer({ iceServers, polite, sendSignal, onRemoteStream, onState, onStuck }) {
   const pc = new RTCPeerConnection({ iceServers });
 
   let makingOffer = false;
@@ -30,6 +33,8 @@ export function createPeer({ iceServers, polite, sendSignal, onRemoteStream, onS
   let offerTimer = null;
   let offerAttempt = 0;
   let offerSentAt = 0;
+
+  let connectTimer = null;
 
   // Surface the remote media to the caller.
   pc.ontrack = (e) => {
@@ -55,10 +60,14 @@ export function createPeer({ iceServers, polite, sendSignal, onRemoteStream, onS
       console.warn("[rtc] ICE failed — restarting ICE");
       pc.restartIce();
     }
+    if (iceUp()) connectResolved();
   };
 
   pc.onsignalingstatechange = () => {
-    if (pc.signalingState === "stable") offerResolved();
+    if (pc.signalingState === "stable") {
+      offerResolved();
+      if (pc.remoteDescription && !iceUp() && !connectTimer) armConnectWatchdog();
+    }
   };
 
   pc.onnegotiationneeded = () => { negotiate(); };
@@ -119,6 +128,37 @@ export function createPeer({ iceServers, polite, sendSignal, onRemoteStream, onS
     retryOffer();
   }
 
+  // Negotiation finished but ICE never even starts checking: every candidate
+  // was lost in signaling, or — when both open the room at the same moment —
+  // Chrome's candidate gathering on the polite side dies after it rolls back
+  // its own offer. ICE then sits at "new" forever (it never reports "failed"),
+  // and an ICE restart doesn't revive that dead gatherer, so tell the caller to
+  // start a fresh connection. Only the impolite side does this, so the two
+  // sides can't both start over at once. "checking" is left alone: ICE is
+  // making progress there and will connect or fail on its own.
+  const iceUp = () => pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed";
+
+  function armConnectWatchdog() {
+    clearTimeout(connectTimer);
+    connectTimer = polite || !onStuck ? null : setTimeout(checkConnected, CONNECT_STUCK_MS);
+  }
+
+  function checkConnected() {
+    connectTimer = null;
+    if (closed || iceUp()) return;
+    if (pc.signalingState === "stable" && pc.iceConnectionState === "new") {
+      console.warn("[rtc] negotiated but ICE never started — asking for a fresh connection");
+      onStuck();
+      return;
+    }
+    armConnectWatchdog();     // still negotiating, or ICE is working on it
+  }
+
+  function connectResolved() {
+    clearTimeout(connectTimer);
+    connectTimer = null;
+  }
+
   async function flushCandidates() {
     while (pendingCandidates.length) {
       const c = pendingCandidates.shift();
@@ -169,6 +209,7 @@ export function createPeer({ iceServers, polite, sendSignal, onRemoteStream, onS
   function close() {
     closed = true;
     offerResolved();
+    connectResolved();
     try {
       pc.ontrack = pc.onicecandidate = pc.onnegotiationneeded = pc.onconnectionstatechange = null;
       pc.oniceconnectionstatechange = pc.onsignalingstatechange = null;

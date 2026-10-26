@@ -50,8 +50,8 @@ canonical, `whm-stage1/` is gone. If old README/HANDOVER copies mention
 
 **Next actions:**
 
-1. **Stage 3** — wise-words bank + his-side dashboard tile that folds in
-   today's phase-aware note (the tracker already computes the phase).
+1. **Stage 4** — question engine → profile entries (Stage 3, the wise-words
+   card on both dashboards, shipped in `25d7ede`).
 2. If the in-call readout says "via relay" and voice is choppy: get a
    dedicated TURN account (Metered free tier, or Twilio / Cloudflare) and put
    its credentials URL in `config.webrtc.iceServersUrl`. No code change needed.
@@ -349,7 +349,7 @@ Later stages will add their own tables with their own RLS, e.g.
 | 1 | Auth + pairing | ✅ built, deployed, smoke-tested |
 | — | Hangout (video, chat, screen share w/ audio) | ✅ built, off-roadmap bonus |
 | 2 | Cycle tracker (her) + to-dos (her, partner-readable) | ✅ built, deployed |
-| 3 | Wise-words bank + his-side dashboard | not started |
+| 3 | Wise-words bank + his-side dashboard | ✅ built, deployed (wise-words card, both sides) |
 | 4 | Question engine → profile entries | not started |
 | 5 | Gemini recommendation card (folds in date-night ideas) | not started |
 | 6 | Polish — settings, profile editing, password reset, PWA wiring | not started |

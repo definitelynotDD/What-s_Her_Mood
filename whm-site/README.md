@@ -76,8 +76,9 @@ display type, **Nunito** for body, and **Caveat** for handwritten accents.
   length, current phase + day) and HER's to-dos (fully partner-readable). Both
   land in the paired-box dashboard, in real time.
 
-Not yet built: wise words (Stage 3), question engine (Stage 4), Gemini
-recommendations (Stage 5), PWA wiring (Stage 6).
+Stage 3 (wise words) adds a phase-aware note to both dashboards. Not yet
+built: question engine (Stage 4), Gemini recommendations (Stage 5), PWA wiring
+(Stage 6).
 
 ---
 
@@ -370,7 +371,7 @@ folded in afterward, one at a time.
 | 1 | Auth + pairing | ✅ built, deployed, verified |
 | — | Hangout (video / chat / screen share w/ audio) | ✅ off-roadmap bonus |
 | 2 | Cycle tracker (her) + to-do list (her, partner-readable) | ✅ built, deployed |
-| 3 | Wise-words curated bank + his-side dashboard | not started |
+| 3 | Wise-words curated bank + his-side dashboard | ✅ built, deployed |
 | 4 | Question engine — pool, prompting, profile entries | not started |
 | 5 | Gemini-powered recommendation card (+ folds in date-night ideas) | not started |
 | 6 | Polish — settings, cadence, profile editing, password reset, PWA wiring | not started |

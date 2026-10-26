@@ -9,19 +9,22 @@ reflects the switch from Firebase to Supabase.
 
 ## Where the build stands (read this first)
 
-**Stages 1 + 2 are deployed and verified.** Two people can sign up (each picks
+**Stages 1–4 are deployed** (Stage 4, the daily question, on 26 Oct 2026). Two people can sign up (each picks
 "her" or "her partner"), each gets a 6-character pairing code, and entering
 the partner's code links the two accounts in real time. Once paired, the app
 screen becomes a small daily dashboard: HER's cycle tracker (current phase +
 day, log period starts, tunable cycle/period length) and HER's to-do list
-(fully partner-readable). Plus a working peer-to-peer hangout (video + audio
+(fully partner-readable), a phase-aware wise-words note, and (Stage 4) one
+optional question a day for her whose answers fill an "about her" card he can
+read. Plus a working peer-to-peer hangout (video + audio
 + chat + screen share with tab audio + per-viewer volume + mute pill) that
 started as a stretch feature and now works end-to-end.
 
 - **Backend:** Supabase project **`mygaahtcnpfixdrwfptw`** (region
   ap-southeast-1). The database schema is applied (see `supabase/schema.sql`,
-  three migrations: `whm_stage1_auth_pairing`, `whm_stage1_harden_functions`,
-  `whm_stage2_cycle_todos`), `config.js` has the project URL + anon key. All
+  four migrations: `whm_stage1_auth_pairing`, `whm_stage1_harden_functions`,
+  `whm_stage2_cycle_todos`, `whm_stage4_profile_questions`), `config.js` has
+  the project URL + anon key. All
   security-advisor findings are intentional (the guarded `claim_partner` RPC)
   or optional (leaked-password protection).
 - **Hosting:** [whm-couple.netlify.app](https://whm-couple.netlify.app) —
@@ -50,8 +53,9 @@ canonical, `whm-stage1/` is gone. If old README/HANDOVER copies mention
 
 **Next actions:**
 
-1. **Stage 4** — question engine → profile entries (Stage 3, the wise-words
-   card on both dashboards, shipped in `25d7ede`).
+1. **Stage 5** — a recommendation card for him that draws on her Stage 4
+   answers and today's phase. Keep any LLM key server-side (a Supabase Edge
+   Function secret), never in `config.js`: the site and repo are public.
 2. If the in-call readout says "via relay" and voice is choppy: get a
    dedicated TURN account (Metered free tier, or Twilio / Cloudflare) and put
    its credentials URL in `config.webrtc.iceServersUrl`. No code change needed.
@@ -301,6 +305,40 @@ mounts when the pair completes and unmounts on sign-out. Views branch on the
 signed-in user's role: HER gets editable cards; PARTNER gets read-only cards
 (no add-to-do form, no period-log form, no edit/remove buttons).
 
+## Stage 4 (daily question → "about her")
+
+**What she sees.** A "little question for you" card in the today view: one
+question a day, optional. **save** turns the answer into a profile entry;
+**skip** rests the question for 14 days; **ask me another** gets the next one.
+Once she has answered or skipped one today, the card rests until tomorrow.
+Below her to-dos, an **about you** card lists her answers by kind (how to help,
+comfort, food & drinks, little joys, things to do, watch & listen, wishlist,
+please don't). She can edit or remove any of them, or add her own.
+
+**What he sees.** An **about <her>** card right under the wise words,
+read-only, live. When she's in a phase she answered a phase question for, those
+answers are pulled up top: "on days like today (pms week)".
+
+**Which question comes next** (`js/questions.js`, pure, tested in Node): not
+answered, not skipped in the last 14 days; questions for today's phase first,
+then everyday ones in bank order, then other phases'. The bank (28 questions)
+lives in code, not the database: reword freely, but never change a shipped
+`id`, because her history and entries point at it. Add a question by appending
+to `QUESTIONS`.
+
+**Tables.** `profile_entries` follows the todos pattern (her writes, partner
+reads; `phase_tags` from the question). `question_history` has one row per
+question she answered or skipped (`asked_on` is her local date, sent by the
+app) and only an owner policy, so her partner can't see what she skipped. Both
+tables revoke `anon`. Verified on 26 Oct by acting as each role in one
+rolled-back transaction: she reads/writes her own rows; he reads her entries
+but not her history and can't insert, edit or delete; a third account and
+signed-out requests see nothing; bad kinds and phases are rejected.
+
+**If the tables are missing** (code deployed before the migration), the
+question card stays hidden and the rest of the dashboard works. The tests
+cover this.
+
 ## Data model (built so far)
 
 ```
@@ -331,14 +369,27 @@ public.todos                     -- Stage 2 (her's list)
   title text (1..240),
   done bool, done_at,
   created_at
+
+public.profile_entries           -- Stage 4 (her answers, partner-readable)
+  id uuid PK, user_id -> users.id,
+  thing text (1..200),
+  category 'care'|'comfort'|'food'|'little'|'activity'|'media'|'wishlist'|'avoid',
+  source 'answered-question'|'added-manually',
+  question_id text (id in js/questions.js, nullable),
+  phase_tags text[] (subset of the five phases),
+  created_at
+
+public.question_history          -- Stage 4 (private to her)
+  user_id -> users.id, question_id text,  PK (user_id, question_id)
+  status 'answered'|'skipped',
+  skipped_until date, asked_on date
 ```
 
 No separate pairing-codes table is needed (unlike Firestore) — Postgres can query
 `where pairing_code = …` directly, and `claim_partner` does the lookup safely.
 
 Later stages will add their own tables with their own RLS, e.g.
-`profile_entries` + `question_history` (Stage 4), `recommendations` (Stage 5),
-`couples` (Stage 7+).
+`recommendations` (Stage 5), `couples` (Stage 7+).
 
 ---
 
@@ -350,7 +401,7 @@ Later stages will add their own tables with their own RLS, e.g.
 | — | Hangout (video, chat, screen share w/ audio) | ✅ built, off-roadmap bonus |
 | 2 | Cycle tracker (her) + to-dos (her, partner-readable) | ✅ built, deployed |
 | 3 | Wise-words bank + his-side dashboard | ✅ built, deployed (wise-words card, both sides) |
-| 4 | Question engine → profile entries | not started |
+| 4 | Question engine → profile entries | ✅ built, deployed (26 Oct) |
 | 5 | Gemini recommendation card (folds in date-night ideas) | not started |
 | 6 | Polish — settings, profile editing, password reset, PWA wiring | not started |
 | 7–12 | Ember-derived: shared `couples` doc, anniversary countdown, milestone timeline, watchlist, quiz | not started |

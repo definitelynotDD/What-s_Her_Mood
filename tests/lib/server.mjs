@@ -17,7 +17,8 @@ const FIXTURES = path.join(HERE, "..", "fixtures");
 export const SITE = path.join(HERE, "..", "..", "whm-site");
 
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json",
-               ".png": "image/png", ".svg": "image/svg+xml", ".woff2": "font/woff2" };
+               ".png": "image/png", ".svg": "image/svg+xml", ".woff2": "font/woff2",
+               ".webmanifest": "application/manifest+json" };
 
 const MOCK_CONFIG = "window.WHM_CONFIG = " + JSON.stringify({
   supabase: { url: "https://mock.supabase.co", anonKey: "mock" },

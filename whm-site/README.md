@@ -78,7 +78,8 @@ display type, **Nunito** for body, and **Caveat** for handwritten accents.
 
 Stage 3 (wise words) adds a phase-aware note to both dashboards. Stage 4 asks
 her one optional question a day and shows her answers to him in an "about her"
-card. Not yet built: recommendations (Stage 5), PWA wiring (Stage 6).
+card. The app installs on a phone's home screen (manifest; no offline mode).
+Not yet built: recommendations (Stage 5), the rest of Stage 6 polish.
 
 ---
 
@@ -134,7 +135,8 @@ whm-site/
 │   ├── hangout.js          Room lifecycle: media, signaling, chat, screen share
 │   └── main.js             DOM event wiring + screen routing
 ├── assets/                 Fraunces / Nunito / Caveat font files (.woff2)
-└── icons/                  PWA icons (present, not wired up until a later stage)
+├── icons/                  App icons, used by manifest.webmanifest
+└── manifest.webmanifest    Makes it installable ("Install app" / Add to Home Screen)
 ```
 
 The README below still describes the original Firebase design in places — see
@@ -330,11 +332,14 @@ You can skip this until Stage 5.
 - Her view becomes the tracker + to-do list.
 - His view becomes the read-only cycle widget + wise-words note + her to-dos.
 
-### Installing on a phone (after PWA wiring returns in a later stage)
+### Installing on a phone
 
-In Chrome on Android: open the URL, tap the **⋮** menu, choose **Install app**
-or **Add to home screen**. It then runs fullscreen with its own icon. Works
-offline once the service worker is back in a later stage.
+In **Chrome on Android**: open the URL, tap **⋮**, choose **Install app** (or
+**Add to home screen**). On **iPhone**: open it in **Safari**, tap **Share**,
+then **Add to Home Screen**. Either way it opens full-screen with its own icon
+and name ("Her Mood"), on the **today** tab once you're paired. There's no
+offline mode: no service worker on purpose, so every open loads the latest
+deploy.
 
 ---
 
@@ -374,7 +379,7 @@ folded in afterward, one at a time.
 | 3 | Wise-words curated bank + his-side dashboard | ✅ built, deployed |
 | 4 | Question engine — pool, prompting, profile entries | ✅ built, deployed |
 | 5 | Gemini-powered recommendation card (+ folds in date-night ideas) | not started |
-| 6 | Polish — settings, cadence, profile editing, password reset, PWA wiring | not started |
+| 6 | Polish — settings, cadence, profile editing, password reset, PWA wiring | PWA wiring done (installable, no offline); rest not started |
 
 ### Ember-derived (after the core works)
 
@@ -438,7 +443,7 @@ Check `authDomain` in `config.js` ends in `.firebaseapp.com` (common typo:
 
 **Chrome shows only "Add to home screen", not "Install app"**
 That's fine on modern Chrome with a valid manifest — it still installs a real
-standalone app. (PWA manifest returns in a later stage.) Make sure you're in
+standalone app. Make sure you're in
 regular Chrome, not Incognito, and you've interacted with the page for ~30s.
 
 ---

@@ -14,6 +14,14 @@
   <link rel="stylesheet" href="css/hangout.css" />
   <link rel="icon" href="icons/favicon-32.png" sizes="32x32" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <!-- Installable: "Install app" on Android, a full-screen home-screen app on
+       iPhone. No service worker on purpose: nothing cached, so a deploy
+       reaches the phone on the next open. -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Her Mood" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 </head>
 <body>
   <header id="app-header" class="app-header" hidden>

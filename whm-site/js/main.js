@@ -59,13 +59,17 @@ function setBusy(btn, busy, busyLabel) {
 
 let unsubUserRow = null;
 let currentPairing = null;
+let rowSeen = false;                           // has this sign-in rendered its first row yet?
 function stopUserRowWatch() {
   if (unsubUserRow) { unsubUserRow(); unsubUserRow = null; }
+  rowSeen = false;
 }
 
 async function renderUserRow(row) {
   if (!row) return;
   const wasPaired = !!currentPairing;
+  const firstRow = !rowSeen;
+  rowSeen = true;
   $("#hello-name").textContent = row.display_name || "you";
   $("#role-pill").textContent = row.role === "her" ? "her" : "her partner";
   $("#my-code").textContent = row.pairing_code || "——————";
@@ -96,9 +100,10 @@ async function renderUserRow(row) {
     unmountTracker();
     show($("#pair-form"));
   }
-  // On the moment we FIRST become paired, land on the pair-up sub-view so the
-  // "you're paired with dev ♡" line gets its beat. On unpair, snap back to pair.
-  if (!wasPaired && currentPairing) setSubview("pair");
+  // Opening the app already paired: land on today (tracker + the day's
+  // question). Becoming paired just now: land on pair-up so the "you're paired
+  // with dev ♡" line gets its beat. On unpair, snap back to pair.
+  if (!wasPaired && currentPairing) setSubview(firstRow ? "today" : "pair");
   if (wasPaired && !currentPairing)  setSubview("pair");
   // Special days: fireworks + banner on load, and at midnight if the app is
   // already open — cozy room included (see celebrate.js).

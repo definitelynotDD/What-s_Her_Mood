@@ -339,6 +339,22 @@ signed-out requests see nothing; bad kinds and phases are rejected.
 question card stays hidden and the rest of the dashboard works. The tests
 cover this.
 
+## Installable app + landing tab (26 Oct)
+
+`manifest.webmanifest` (name "What's Her Mood", short name "Her Mood",
+standalone, sage/cream colors, the existing `icons/` incl. maskable) plus the
+Apple meta tags in `index.html` make it installable: "Install app" in Android
+Chrome, full-screen from Add to Home Screen on iPhone. **No service worker, on
+purpose:** nothing is cached, so a deploy reaches both phones on the next open
+and the two never run different builds (the cozy room needs them to match).
+Chrome hasn't required a service worker to install for a while; `app.test.mjs`
+asks Chrome itself (`Page.getInstallabilityErrors`) and expects no errors.
+
+**Landing tab.** Opening the app already paired lands on **today** (tracker +
+the day's question). Pair-up is shown only at the moment two accounts link,
+so "you're paired with … ♡" gets its beat, and on unpair. `main.js`
+`renderUserRow` tells the two apart with `rowSeen` (reset on every sign-in).
+
 ## Data model (built so far)
 
 ```
@@ -403,7 +419,7 @@ Later stages will add their own tables with their own RLS, e.g.
 | 3 | Wise-words bank + his-side dashboard | ✅ built, deployed (wise-words card, both sides) |
 | 4 | Question engine → profile entries | ✅ built, deployed (26 Oct) |
 | 5 | Gemini recommendation card (folds in date-night ideas) | not started |
-| 6 | Polish — settings, profile editing, password reset, PWA wiring | not started |
+| 6 | Polish — settings, profile editing, password reset, PWA wiring | PWA wiring done 26 Oct; rest not started |
 | 7–12 | Ember-derived: shared `couples` doc, anniversary countdown, milestone timeline, watchlist, quiz | not started |
 
 Each stage is a working, deployable build. Port Ember features one at a time

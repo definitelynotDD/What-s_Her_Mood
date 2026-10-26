@@ -19,6 +19,7 @@ tab's `postgres_changes` listeners the way Realtime would).
 | File | What it covers | Time |
 |---|---|---|
 | `hangout.test.mjs` | Two real Chromium tabs on one real WebRTC call (fake camera, mic and screen): connecting, voice tuning, screen share, lost signaling messages, dropped channels, rejoining, a call that negotiates but never connects, mic switching, hearts, camera-off, slap | ~3 min |
+| `app.test.mjs` | Opening the app: lands on today when already paired, on pair-up when pairing happens live; Chrome confirms it's installable | ~10 s |
 | `profile.test.mjs` | Stage 4 in the real app: her daily question (save, skip, one a day, ask another, phase questions first), editing what he sees, his read-only view with "on days like today", live updates, missing tables | ~15 s |
 | `questions.test.mjs` | Which question comes next, and that the question bank is well formed. Plain Node | <1 s |
 | `celebrate-dates.test.mjs` | Which days celebrate and for how long. Plain Node, no browser | <1 s |

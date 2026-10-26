@@ -5,9 +5,16 @@ import { chromium } from "playwright";
 // lacks screen capture. Set CHROMIUM_PATH to use a specific browser binary.
 export const MEDIA_ARGS = ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"];
 
+const which = () => process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : { channel: "chromium" };
+
 export function launch(args = []) {
-  const executablePath = process.env.CHROMIUM_PATH || undefined;
-  return chromium.launch({ headless: true, args, ...(executablePath ? { executablePath } : { channel: "chromium" }) });
+  return chromium.launch({ headless: true, args, ...which() });
+}
+
+// A browser with a real (non-incognito) profile in `dir` — e.g. Chrome won't
+// call any site installable in incognito, which is what launch() contexts are.
+export function launchProfile(dir, opts = {}) {
+  return chromium.launchPersistentContext(dir, { headless: true, ...which(), ...opts });
 }
 
 // A signed-in, paired couple ("dev" + "ana") for the mock database.

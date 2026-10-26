@@ -1,7 +1,7 @@
 // TEST MOCK of js/supabase-init.js — served in its place by lib/server.mjs.
 // Realtime broadcast is faked over BroadcastChannel, so two tabs in one browser
 // run the real hangout.js + rtc.js against each other; the knobs on
-// window.__mock drop messages or kill channels on command. Tables are read from
+// window.__mock drop messages or kill channels on command. Tables live in
 // window.__db (set it in an init script).
 const ctl = window.__mock = {
   dropOut: false,            // drop everything this tab sends
@@ -66,18 +66,50 @@ ctl.emitChange = (table, row) => [...ctl.live].forEach((c) => {
   c.handlers.forEach((h) => { if (h.type === "postgres_changes" && h.filter.table === table) h.cb({ new: row }); });
 });
 window.__db = window.__db || {};
+// Tables that answer every query with an error (e.g. not created yet). Set
+// window.__failTables in an init script, or change it live.
+ctl.failTables = new Set(window.__failTables || []);
+// Table stub: filters with eq(), and applies insert/upsert/update/delete to
+// window.__db. A write is echoed to this tab's postgres_changes listeners, the
+// way Realtime echoes it back to the writer.
 function query(table) {
   const filters = [];
-  let single = false;
+  let single = false, op = "select", payload = null, conflict = ["id"];
+  const rows = () => (window.__db[table] = window.__db[table] || []);
+  const match = (r) => filters.every(([c, v]) => r[c] === v);
   const b = {
     select() { return b; },
+    insert(r) { op = "insert"; payload = [].concat(r); return b; },
+    upsert(r, o) { op = "upsert"; payload = [].concat(r); if (o && o.onConflict) conflict = o.onConflict.split(","); return b; },
+    update(patch) { op = "update"; payload = patch; return b; },
+    delete() { op = "delete"; return b; },
     eq(col, val) { filters.push([col, val]); return b; },
     order() { return b; },
     limit() { return b; },
     maybeSingle() { single = true; return b; },
     then(res, rej) {
-      const rows = (window.__db[table] || []).filter((r) => filters.every(([c, v]) => r[c] === v)).map((r) => ({ ...r }));
-      return Promise.resolve({ data: single ? (rows[0] || null) : rows, error: null }).then(res, rej);
+      if (ctl.failTables.has(table)) {
+        return Promise.resolve({ data: null, error: { message: `relation "public.${table}" does not exist` } }).then(res, rej);
+      }
+      if (op === "select") {
+        const found = rows().filter(match).map((r) => ({ ...r }));
+        return Promise.resolve({ data: single ? (found[0] || null) : found, error: null }).then(res, rej);
+      }
+      const changed = [];
+      if (op === "insert" || op === "upsert") {
+        for (const r of payload) {
+          const i = op === "upsert" ? rows().findIndex((x) => conflict.every((c) => x[c] === r[c])) : -1;
+          if (i >= 0) { Object.assign(rows()[i], r); changed.push(rows()[i]); }
+          else { const row = { id: crypto.randomUUID(), created_at: new Date().toISOString(), ...r }; rows().push(row); changed.push(row); }
+        }
+      } else if (op === "update") {
+        rows().filter(match).forEach((r) => { Object.assign(r, payload); changed.push(r); });
+      } else if (op === "delete") {
+        changed.push(...rows().filter(match));
+        window.__db[table] = rows().filter((r) => !match(r));
+      }
+      setTimeout(() => changed.forEach((r) => ctl.emitChange(table, { ...r })), 0);
+      return Promise.resolve({ data: null, error: null }).then(res, rej);
     },
   };
   return b;

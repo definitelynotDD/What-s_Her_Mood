@@ -1,9 +1,11 @@
 // ─────────────────────────────────────────────────────────────
-// tracker.js — Stage 2 UI: cycle card + todos card.
+// tracker.js — the today view: cycle card, wise words, todos, and Stage 4's
+// question + "about her" cards (profile-cards.js).
 //
 // Rendered inside the paired-box on #screen-app. Two views:
-//   - HER: editable — log a period start, tweak cycle/period length, manage todos.
-//   - PARTNER: read-only — see today's phase/day and her todo list.
+//   - HER: editable — log a period start, tweak cycle/period length, manage
+//     todos, answer the day's question, edit what her partner sees about her.
+//   - PARTNER: read-only — see today's phase/day, her todo list and her answers.
 // Everything data-driven from cycle.js + todos.js; realtime keeps both sides live.
 // ─────────────────────────────────────────────────────────────
 import {
@@ -16,6 +18,8 @@ import {
 import { mountMascot } from "./mascot.js";
 import { spawnConfetti } from "./effects.js";
 import { pickWiseWord } from "./wise-words.js";
+import { watchEntries } from "./profile.js";
+import { renderQuestionCard, renderProfileCard } from "./profile-cards.js";
 
 const $ = (sel, root) => (root || document).querySelector(sel);
 const el = (tag, cls, txt) => {
@@ -27,8 +31,9 @@ const el = (tag, cls, txt) => {
 
 let unsubCycle = null;
 let unsubTodos = null;
+let unsubProfile = null;
 
-export function mountTracker({ myUid, myRole, herUid, herName }) {
+export function mountTracker({ myUid, myRole, herUid, herName, partnerName }) {
   unmountTracker();
   const host = $("#tracker");
   if (!host) return;
@@ -52,16 +57,29 @@ export function mountTracker({ myUid, myRole, herUid, herName }) {
   const cycleCard = renderCycleCard({ iAmHer, herName });
   const wiseCard  = renderWiseCard({ iAmHer, herName });
   const todosCard = renderTodosCard({ iAmHer, herName });
+  const questionCard = iAmHer ? renderQuestionCard({ herUid, partnerName }) : null;
+  const aboutCard = renderProfileCard({ iAmHer, herUid, herName, partnerName });
   host.appendChild(cycleCard.node);
   host.appendChild(wiseCard.node);
+  // Her: the day's question, then her lists. Him: what she said, right under
+  // the wise words, then her to-dos.
+  if (questionCard) host.appendChild(questionCard.node);
+  if (!iAmHer) host.appendChild(aboutCard.node);
   host.appendChild(todosCard.node);
+  if (iAmHer) host.appendChild(aboutCard.node);
 
   unsubCycle = watchCycle(herUid, ({ settings, starts }) => {
     cycleCard.update({ settings, starts });
     wiseCard.update({ settings, starts });
+    const phase = currentPhase(settings, starts);
+    if (questionCard) questionCard.setPhase(phase.key);
+    aboutCard.setPhase(phase);
   });
   unsubTodos = watchTodos(herUid, (list) => {
     todosCard.update(list);
+  });
+  unsubProfile = watchEntries(herUid, (list) => {
+    aboutCard.update(list);
   });
 
   cycleCard.bind({ herUid, iAmHer });
@@ -71,6 +89,7 @@ export function mountTracker({ myUid, myRole, herUid, herName }) {
 export function unmountTracker() {
   if (unsubCycle) { unsubCycle(); unsubCycle = null; }
   if (unsubTodos) { unsubTodos(); unsubTodos = null; }
+  if (unsubProfile) { unsubProfile(); unsubProfile = null; }
   const host = $("#tracker");
   if (host) { host.hidden = true; host.innerHTML = ""; }
 }

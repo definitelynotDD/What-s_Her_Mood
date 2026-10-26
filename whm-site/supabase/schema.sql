@@ -13,6 +13,13 @@
 --    by her partner via the same private.my_partner() helper Stage 1 uses.
 --    Writes gated to role='her' by private.my_role() so a partner account can't
 --    accidentally seed its own rows even if the client tried.
+--
+--  Stage 4: question engine → profile entries.
+--    Migration: whm_stage4_profile_questions
+--    Model: profile_entries (her answers + things she adds; partner-readable,
+--    her-writable, same pattern as todos) and question_history (answered /
+--    skipped per question; private to her, no partner policy). The questions
+--    themselves live in js/questions.js.
 -- ============================================================
 
 -- ---- profile table ----
@@ -208,5 +215,62 @@ do $$ begin
   if not exists (select 1 from pg_publication_tables
                  where pubname='supabase_realtime' and schemaname='public' and tablename='todos') then
     alter publication supabase_realtime add table public.todos;
+  end if;
+end $$;
+
+-- ============================================================
+--  Stage 4 — question engine → profile entries
+-- ============================================================
+
+-- ---- profile_entries: what she likes, what helps, what doesn't. Partner-readable. ----
+create table public.profile_entries (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references public.users(id) on delete cascade,
+  thing       text not null check (char_length(trim(thing)) between 1 and 200),
+  category    text not null
+              check (category in ('care','comfort','food','little','activity','media','wishlist','avoid')),
+  source      text not null default 'added-manually'
+              check (source in ('answered-question','added-manually')),
+  question_id text check (char_length(question_id) between 1 and 40),   -- id in js/questions.js
+  phase_tags  text[] not null default '{}'
+              check (phase_tags <@ array['menstrual','follicular','ovulation','luteal','pms']::text[]),
+  created_at  timestamptz not null default now()
+);
+alter table public.profile_entries enable row level security;
+
+create policy "pe read own"     on public.profile_entries for select
+  using (auth.uid() = user_id);
+create policy "pe read partner" on public.profile_entries for select
+  using (user_id = private.my_partner());
+create policy "pe write own"    on public.profile_entries for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id and private.my_role() = 'her');
+
+create index profile_entries_user_created_idx on public.profile_entries (user_id, created_at);
+
+-- ---- question_history: which questions she answered or skipped. Private to her. ----
+create table public.question_history (
+  user_id       uuid not null references public.users(id) on delete cascade,
+  question_id   text not null check (char_length(question_id) between 1 and 40),
+  status        text not null check (status in ('answered','skipped')),
+  skipped_until date,
+  asked_on      date not null,            -- her local date, sent by the app
+  primary key (user_id, question_id)
+);
+alter table public.question_history enable row level security;
+
+create policy "qh own" on public.question_history for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id and private.my_role() = 'her');
+
+-- Signed-in users only; RLS above decides which rows.
+revoke all on public.profile_entries, public.question_history from anon;
+grant select, insert, update, delete on public.profile_entries, public.question_history to authenticated;
+
+-- ---- realtime: his "about her" card updates live ----
+do $$ begin
+  if not exists (select 1 from pg_publication_tables
+                 where pubname='supabase_realtime' and schemaname='public' and tablename='profile_entries') then
+    alter publication supabase_realtime add table public.profile_entries;
   end if;
 end $$;

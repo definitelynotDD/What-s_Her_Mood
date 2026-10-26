@@ -1,0 +1,136 @@
+/* ============================================================
+   WHM — profile.css
+   Stage 4: the day's question (her) and the "about her" card (both),
+   mounted inside #tracker next to the Stage 2 cards.
+   ============================================================ */
+
+/* ---- question card ---- */
+.q-card {
+  background: linear-gradient(135deg, var(--paper) 0%, var(--honey-soft) 170%);
+  gap: 8px;
+}
+.q-kicker {
+  margin: 0;
+  font-size: 18px;
+  color: var(--honey-ink);
+}
+.q-prompt {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--pri-ink);
+  animation: popIn .4s cubic-bezier(.3, .7, .4, 1.4);
+}
+.q-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+.q-form input,
+.about-add-form input,
+.about-add-form select {
+  appearance: none;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  font: 15px 'Nunito', system-ui, sans-serif;
+  outline: none;
+}
+.q-form input:focus,
+.about-add-form input:focus,
+.about-add-form select:focus { border-color: var(--pri); box-shadow: 0 0 0 3px rgba(79,110,74,0.16); }
+.q-save { width: auto; padding: 10px 16px; font-size: 14px; }
+.q-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.q-skip, .q-more { flex: 0 0 auto; }
+
+/* ---- about card ---- */
+.about-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.about-sub {
+  margin: -6px 0 0;
+  font-size: 17px;
+  color: var(--pri);
+}
+.about-today {
+  background: var(--pri-soft);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.about-today[hidden] { display: none; }
+.about-today-title {
+  margin: 0;
+  font-size: 18px;
+  color: var(--pri-ink);
+}
+.about-groups { display: flex; flex-direction: column; gap: 10px; }
+.about-group-title {
+  margin: 0 0 2px;
+  font: 700 12px 'Nunito', system-ui, sans-serif;
+  letter-spacing: .04em;
+  color: var(--ink-soft);
+}
+.about-group[data-cat="avoid"] .about-group-title { color: var(--rust-ink); }
+.about-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 2px; }
+.about-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 10px;
+}
+.about-row:hover { background: var(--cream-2); }
+.about-today .about-row:hover { background: transparent; }
+.about-text {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px;
+  min-width: 0;
+}
+.about-label {
+  font: 700 12.5px 'Nunito', system-ui, sans-serif;
+  color: var(--ink-soft);
+}
+.about-thing {
+  font: 500 15px 'Nunito', system-ui, sans-serif;
+  color: var(--ink);
+  word-break: break-word;
+}
+.about-chip {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--plum-soft);
+  color: var(--plum-ink);
+  font: 700 11px 'Nunito', system-ui, sans-serif;
+}
+.about-empty[hidden] { display: none; }
+
+.about-add summary {
+  list-style: none;
+  display: inline-block;
+  padding: 4px 2px;
+}
+.about-add summary::-webkit-details-marker { display: none; }
+.about-add summary::before { content: "+ "; }
+.about-add[open] summary::before { content: "– "; }
+.about-add-form {
+  display: grid;
+  grid-template-columns: 1fr auto;     /* kind on its own line, then what + add */
+  gap: 8px;
+  margin-top: 6px;
+}
+.about-add-form select {
+  grid-column: 1 / -1;
+  padding-right: 34px;                 /* room for the arrow (appearance: none drops the native one) */
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%237B6E55' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center;
+  cursor: pointer;
+}

@@ -89,7 +89,8 @@ async function renderUserRow(row) {
     // one of the two is 'her'.
     const herUid = row.role === "her" ? row.id : row.paired_with;
     const herName = row.role === "her" ? row.display_name : partnerName;
-    mountTracker({ myUid: row.id, myRole: row.role, herUid, herName });
+    const hisName = row.role === "her" ? partnerName : row.display_name;
+    mountTracker({ myUid: row.id, myRole: row.role, herUid, herName, partnerName: hisName });
   } else {
     currentPairing = null;
     unmountTracker();

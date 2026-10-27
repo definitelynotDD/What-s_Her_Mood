@@ -379,19 +379,33 @@ screen down (on a small phone, "I already have one" was off the bottom). Now
 hidden on the welcome page, whose card already carries the title.
 `call-bubble.test.mjs` covers both.
 
-## Mood on the today tab (27 Oct)
+## Mood on the today tab + the week calendar (27 Oct)
 
-Each phase in `cycle.js` `PHASES` now carries an `emoji` (shown at the top of
-the cycle ring, above the day) and a `mood` for the mascot ("our apple"):
-menstrual 😴 sleepy, follicular 😊 happy, ovulation 😄 glowing, luteal 😌 calm,
-pms 🥺 tender. No data: no emoji, everyday face. `tracker.js` sets
-`data-mood` on the header mascot from the same `watchCycle` push as the ring, so
-both phones change together and live. The faces are CSS only
-(`mascot.css`, `.mascot[data-mood=…]`): closed or arched eyes, an "o" or open
-mouth, worried brows (`.mascot-brow`, hidden unless tender), and a drifting
-"z" or a sparkle on `::after`. Mascots elsewhere (welcome, pair up) have no
-`data-mood` and keep the everyday smile. To change an emoji, edit its line in
-`PHASES`. `mood.test.mjs` covers it.
+**Mood.** Each phase in `cycle.js` `PHASES` carries an `emoji` (shown big next
+to the phase name) and a `mood` for the mascot ("our apple"): menstrual 😴
+sleepy, follicular 😊 happy, ovulation 😄 glowing, luteal 😌 calm, pms 🥺
+tender. No data: no emoji, everyday face. `tracker.js` sets `data-mood` on the
+header mascot from the same `watchCycle` push as the card, so both phones
+change together and live. The faces are CSS only (`mascot.css`,
+`.mascot[data-mood=…]`): closed or arched eyes, an "o" or open mouth, worried
+brows (`.mascot-brow`, hidden unless tender), and a drifting "z" or a sparkle on
+`::after`. Mascots elsewhere (welcome, pair up) keep the everyday smile. To
+change an emoji, edit its line in `PHASES`.
+
+**The week instead of the ring.** The cycle ring is gone; the card shows the
+emoji, "pms phase", "day 25 of 26", the note, then seven days coloured by phase
+(`renderWeek` in `tracker.js`, legend underneath). Today is filled in solid; a
+dot marks a logged period start; ‹ › page through weeks and tapping the label
+comes back to this week. The phase of each day comes from `cycle.js`:
+`phaseOn(settings, starts, date)` uses the latest start on or before that date
+(so past weeks show what the app said then, late days as pms), and for days
+ahead repeats the current cycle, which is how the next period shows up before
+it starts. If she's already late, the days ahead are left blank (unknown)
+rather than guessed. `weekOf(…, offset, firstDay)` builds the seven days; the
+first column follows the phone's locale (`Intl.Locale` week info: Sunday for
+en-IN and en-US, Monday for most of Europe; Monday if the browser can't say).
+Both trust `starts` to be newest first, as `fetchStarts` orders them.
+`mood.test.mjs` and `week.test.mjs` cover it.
 
 ## Data model (built so far)
 

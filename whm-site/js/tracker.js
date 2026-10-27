@@ -10,7 +10,7 @@
 // ─────────────────────────────────────────────────────────────
 import {
   watchCycle, upsertSettings, logPeriodStart, deletePeriodStart,
-  currentPhase, todayISO, DEFAULTS,
+  currentPhase, todayISO, DEFAULTS, PHASES, weekOf,
 } from "./cycle.js";
 import {
   watchTodos, addTodo, toggleTodo, editTodo, deleteTodo,
@@ -108,36 +108,25 @@ function renderCycleCard({ iAmHer, herName }) {
   header.appendChild(title);
   header.appendChild(phasePill);
 
-  // ring + copy sit side-by-side
+  // today's mood + phase, then the week as coloured days
   const body = el("div", "cycle-body");
-  const ringWrap = el("div", "cycle-ring");
-  ringWrap.innerHTML = `
-    <svg viewBox="0 0 100 100" class="cycle-ring-svg" aria-hidden="true">
-      <circle cx="50" cy="50" r="42" fill="none" stroke="var(--cream-2)" stroke-width="8"></circle>
-      <circle class="cycle-ring-fill" cx="50" cy="50" r="42" fill="none"
-              stroke="var(--pri)" stroke-width="8" stroke-linecap="round"
-              stroke-dasharray="264" stroke-dashoffset="264"></circle>
-    </svg>
-    <div class="cycle-ring-center">
-      <p class="cycle-mood"></p>
-      <p class="cycle-day-num serif">—</p>
-      <p class="cycle-day-of muted">of —</p>
-    </div>`;
-  const ringFill = ringWrap.querySelector(".cycle-ring-fill");
-  const ringMood = ringWrap.querySelector(".cycle-mood");
-  const ringDayNum = ringWrap.querySelector(".cycle-day-num");
-  const ringDayOf  = ringWrap.querySelector(".cycle-day-of");
-
+  const mood = el("span", "cycle-mood");
+  mood.setAttribute("aria-hidden", "true");
   const bodyText = el("div", "cycle-body-text");
   const phaseName = el("p", "cycle-phase-name serif", "—");
+  const dayLine = el("p", "cycle-day-line", "");
   bodyText.appendChild(phaseName);
+  bodyText.appendChild(dayLine);
   bodyText.appendChild(noteLine);
   bodyText.appendChild(overdueLine);
-  body.appendChild(ringWrap);
+  body.appendChild(mood);
   body.appendChild(bodyText);
+
+  const week = renderWeek();
 
   card.appendChild(header);
   card.appendChild(body);
+  card.appendChild(week.node);
 
   let logForm, logInput, logBtn, tuneWrap, cycleInput, periodInput, saveBtn,
       historyWrap, historyList, historyToggle, historyOpen = false;
@@ -198,33 +187,17 @@ function renderCycleCard({ iAmHer, herName }) {
       const p = currentPhase(settings, starts);
       phasePill.textContent = p.label;
       phasePill.dataset.hue = p.hue;
-      // ring + centered day — set the SVG dashoffset from day/cycleLength.
-      // stroke-dasharray is 264 (2π·42, matching the design), so offset =
-      // 264 * (1 - fraction).
-      const CIRC = 264;
-      ringFill.setAttribute("stroke", ringStroke(p.hue));
-      ringMood.textContent = p.emoji;
-      ringMood.hidden = !p.emoji;
-      ringMood.title = p.emoji ? p.mood : "";
+      mood.textContent = p.emoji;
+      mood.hidden = !p.emoji;
+      mood.title = p.emoji ? p.mood : "";
+      week.update({ settings, starts });
       if (p.day == null) {
-        ringDayNum.textContent = "—";
-        ringDayOf.textContent  = "log a start";
-        ringFill.style.strokeDashoffset = String(CIRC);
+        dayLine.textContent = "";
         phaseName.textContent = "no data yet";
         noteLine.textContent = iAmHer ? "log your last period start below." : "waiting on her to log a start.";
         overdueLine.hidden = true;
       } else {
-        const frac = Math.max(0, Math.min(1, p.day / p.cycleLength));
-        const target = Math.round(CIRC * (1 - frac));
-        // stamp a fresh drawIn animation each render so the ring re-fills
-        ringFill.style.setProperty("--dash-target", target);
-        ringFill.style.animation = "none";
-        // eslint-disable-next-line no-unused-expressions
-        void ringFill.offsetWidth;
-        ringFill.style.animation = "drawIn 1.8s cubic-bezier(.4,0,.2,1) forwards";
-        ringFill.style.strokeDashoffset = String(target);
-        ringDayNum.textContent = String(p.day);
-        ringDayOf.textContent  = `of ${p.cycleLength}`;
+        dayLine.textContent = `day ${p.day} of ${p.cycleLength}`;
         phaseName.textContent = p.label + " phase";
         noteLine.textContent = p.note;
         if (p.overdue) {
@@ -281,6 +254,82 @@ function renderCycleCard({ iAmHer, herName }) {
       });
     },
   };
+}
+
+// ──────────────── the week, coloured by phase ────────────────
+// Seven days (the week holding today; ‹ › for others), each coloured by its
+// phase from cycle.js weekOf(). Days ahead repeat the current cycle, so the
+// next period shows up before it comes. A dot marks a logged period start.
+const LEGEND = ["menstrual", "follicular", "ovulation", "luteal", "pms"];
+
+function renderWeek() {
+  const node = el("div", "cycle-week");
+  const nav = el("div", "cycle-week-nav");
+  const prev = el("button", "cycle-week-btn", "‹");
+  const label = el("button", "cycle-week-label", "this week");
+  const next = el("button", "cycle-week-btn", "›");
+  prev.type = label.type = next.type = "button";
+  prev.setAttribute("aria-label", "previous week");
+  next.setAttribute("aria-label", "next week");
+  nav.appendChild(prev);
+  nav.appendChild(label);
+  nav.appendChild(next);
+  const days = el("div", "cycle-week-days");
+  const legend = el("div", "cycle-legend");
+  LEGEND.forEach((k) => {
+    const item = el("span", "cycle-legend-item", k === "menstrual" ? "period" : PHASES[k].label);
+    item.dataset.hue = PHASES[k].hue;
+    legend.appendChild(item);
+  });
+  node.appendChild(nav);
+  node.appendChild(days);
+  node.appendChild(legend);
+
+  const firstDay = weekStart();
+  const fmtWd = new Intl.DateTimeFormat(undefined, { weekday: "narrow" });
+  const fmtDay = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short" });
+  let offset = 0, data = { settings: null, starts: [] };
+
+  function draw() {
+    const list = weekOf(data.settings, data.starts, offset, firstDay);
+    days.innerHTML = "";
+    list.forEach((d) => {
+      const col = el("div", "cw-day");
+      col.dataset.iso = d.iso;
+      col.dataset.hue = d.phase.hue;
+      col.dataset.phase = d.phase.key;
+      col.classList.toggle("is-today", d.isToday);
+      col.classList.toggle("is-logged", d.logged);
+      col.title = `${fmtDay.format(d.date)}: ${d.phase.key === "unknown" ? "?" : d.phase.label}${d.logged ? " (period logged)" : ""}`;
+      col.appendChild(el("span", "cw-wd", fmtWd.format(d.date)));
+      const cell = el("span", "cw-cell");
+      cell.appendChild(el("span", "cw-date", String(d.date.getDate())));
+      col.appendChild(cell);
+      days.appendChild(col);
+    });
+    label.textContent = offset === 0 ? "this week" : offset === 1 ? "next week" : offset === -1 ? "last week"
+      : `${fmtDay.format(list[0].date)} – ${fmtDay.format(list[6].date)}`;
+    label.disabled = offset === 0;   // tap the label to come back to this week
+  }
+  prev.addEventListener("click", () => { offset -= 1; draw(); });
+  next.addEventListener("click", () => { offset += 1; draw(); });
+  label.addEventListener("click", () => { offset = 0; draw(); });
+
+  return {
+    node,
+    update({ settings, starts }) { data = { settings, starts: starts || [] }; draw(); },
+  };
+}
+
+// The calendar's first column: the phone's own habit (Sunday in India and the
+// US, Monday in most of Europe), Monday when the browser can't say.
+function weekStart() {
+  try {
+    const loc = new Intl.Locale(navigator.language);
+    const info = loc.getWeekInfo ? loc.getWeekInfo() : loc.weekInfo;
+    if (info && info.firstDay) return info.firstDay % 7;
+  } catch (_) { /* older browsers */ }
+  return 1;
 }
 
 // ──────────────── wise-words card ────────────────
@@ -440,16 +489,4 @@ function renderTodoRow(row, iAmHer, err) {
 function showErr(node, e) {
   node.textContent = (e && e.message) ? e.message : "Something went wrong.";
   node.hidden = false;
-}
-
-// Ring stroke color per phase — same "hue" tokens the pill uses.
-function ringStroke(hue) {
-  switch (hue) {
-    case "rust":  return "var(--rust)";
-    case "teal":  return "var(--teal)";
-    case "honey": return "var(--honey)";
-    case "plum":  return "var(--plum)";
-    case "muted": return "var(--ink-soft)";
-    default:      return "var(--pri)";
-  }
 }

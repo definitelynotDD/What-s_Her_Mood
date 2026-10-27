@@ -1,4 +1,4 @@
-// The phase's mood on the today tab: an emoji in the cycle ring and the
+// The phase's mood on the today tab: an emoji by the phase name and the
 // mascot's face to match, on both phones, changing live with her log.
 import { startServer } from "./lib/server.mjs";
 import { launch, checker } from "./lib/browser.mjs";
@@ -7,7 +7,8 @@ const { server, origin } = startServer();
 const b = await launch();
 const { check, done } = checker();
 const errs = [];
-const daysAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+const daysAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n);
+  return [d.getFullYear(), d.getMonth() + 1, d.getDate()].map((x) => String(x).padStart(2, "0")).join("-"); };
 
 async function open(user, starts) {
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });
@@ -32,7 +33,7 @@ const read = (p) => p.evaluate(() => {
   const m = q(".tr-head-mascot .mascot");
   return {
     emoji: q(".cycle-mood").hidden ? "" : q(".cycle-mood").textContent,
-    day: q(".cycle-day-num").textContent, of: q(".cycle-day-of").textContent,
+    day: q(".cycle-day-line").textContent,
     phase: q(".cycle-phase-name").textContent, mood: m && m.dataset.mood,
     brows: !!m && getComputedStyle(m.querySelector(".mascot-brow")).display !== "none",
     scrollW: document.documentElement.scrollWidth,
@@ -60,7 +61,7 @@ const read = (p) => p.evaluate(() => {
 for (const who of ["her", "me"]) {
   const { p, ctx } = await open(who, [daysAgo(24)]);
   const v = await read(p);
-  check(`${who}: ring shows 🥺 over day 25 of 26`, v.emoji === "🥺" && v.day === "25" && v.of === "of 26" && v.phase === "pms phase", v);
+  check(`${who}: 🥺 by "pms phase", day 25 of 26`, v.emoji === "🥺" && v.day === "day 25 of 26" && v.phase === "pms phase", v);
   check(`${who}: the mascot looks tender (worried brows)`, v.mood === "tender" && v.brows, v);
   check(`${who}: nothing spills sideways`, v.scrollW <= 390, v);
   await ctx.close();
@@ -75,9 +76,9 @@ for (const who of ["her", "me"]) {
     window.__db.period_starts.unshift(row);
     window.__mock.emitChange("period_starts", row);
   }, daysAgo(0));
-  await p.waitForFunction(() => document.querySelector(".cycle-day-num").textContent === "1", null, { timeout: 5000 }).catch(() => {});
+  await p.waitForFunction(() => document.querySelector(".cycle-day-line").textContent === "day 1 of 26", null, { timeout: 5000 }).catch(() => {});
   const v = await read(p);
-  check("her new period start: 😴 and a sleepy mascot on his phone", v.emoji === "😴" && v.mood === "sleepy" && !v.brows && v.day === "1", v);
+  check("her new period start: 😴 and a sleepy mascot on his phone", v.emoji === "😴" && v.mood === "sleepy" && !v.brows && v.day === "day 1 of 26", v);
   await ctx.close();
 }
 
@@ -85,7 +86,7 @@ for (const who of ["her", "me"]) {
 {
   const { p, ctx } = await open("me", []);
   const v = await read(p);
-  check("no data: no emoji in the ring, everyday mascot", v.emoji === "" && v.day === "—" && v.mood === "happy" && !v.brows, v);
+  check("no data: no emoji, no day, everyday mascot", v.emoji === "" && v.day === "" && v.mood === "happy" && !v.brows, v);
   await ctx.close();
 }
 

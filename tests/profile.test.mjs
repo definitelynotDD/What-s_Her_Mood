@@ -183,10 +183,10 @@ const about = (p) => p.evaluate(() => {
   const { p, ctx } = await open({ as: "her", phaseDay: 10, failTables: ["profile_entries", "question_history"] });
   await p.waitForTimeout(800);
   const s = await p.evaluate(() => ({
-    q: document.querySelector(".q-card").hidden, cycle: document.querySelector(".cycle-day-num").textContent,
+    q: document.querySelector(".q-card").hidden, cycle: document.querySelector(".cycle-day-line").textContent,
     todos: !!document.querySelector(".todos-form"),
   }));
-  check("no question card, cycle and to-dos fine", s.q && s.cycle === "10" && s.todos, s);
+  check("no question card, cycle and to-dos fine", s.q && /^day 10 of /.test(s.cycle) && s.todos, s);
   await ctx.close();
 }
 

@@ -15,7 +15,7 @@ import { keepSubscribed, onlyWhenChanged } from "./realtime.js";
 
 export const DEFAULTS = { cycleLength: 28, periodLength: 5 };
 
-// `emoji` is the phase's mood at a glance (centre of the ring); `mood` picks the
+// `emoji` is the phase's mood at a glance (next to the phase name); `mood` picks the
 // mascot's face to match (mascot.css, .mascot[data-mood]).
 export const PHASES = {
   menstrual:  { key: "menstrual",  label: "menstrual",  hue: "rust",   note: "rest + comfort",       emoji: "😴", mood: "sleepy" },
@@ -28,7 +28,9 @@ export const PHASES = {
 
 // ---- date helpers (local-time, no libraries) ----
 export function todayISO() {
-  const d = new Date();
+  return toISO(new Date());
+}
+function toISO(d) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
@@ -71,6 +73,34 @@ export function currentPhase(settings, starts, when = todayISO()) {
   const day = diff + 1;
   const p = phaseOf(day, C, P);
   return { ...p, cycleLength: C, periodLength: P, lastStart: last.start_date, overdue: day > C };
+}
+
+// Phase on any date, for the week calendar. Up to today it's what the app said
+// that day (from the latest start on or before it; late = pms, as above).
+// Ahead of today the current cycle is repeated forward, unless she's already
+// late, when the days ahead can't be guessed ("unknown", late: true).
+export function phaseOn(settings, starts, when, today = todayISO()) {
+  const C = (settings && settings.cycle_length)  || DEFAULTS.cycleLength;
+  const P = (settings && settings.period_length) || DEFAULTS.periodLength;
+  const start = (starts || []).find((s) => s.start_date <= when);   // newest first
+  if (!start) return phaseOf(null, C, P);
+  const diff = daysBetween(start.start_date, when);
+  if (when <= today) return phaseOf(diff + 1, C, P);
+  if (daysBetween(start.start_date, today) + 1 > C) return { ...phaseOf(null, C, P), late: true };
+  return phaseOf((diff % C) + 1, C, P);
+}
+
+// The 7 days of the week holding `today`, moved by `offset` weeks. `firstDay`
+// is the column the week starts on (0 = Sunday, 1 = Monday, like getDay()).
+export function weekOf(settings, starts, offset = 0, firstDay = 1, today = todayISO()) {
+  const t = parseISO(today);
+  const first = t.getDate() - ((t.getDay() - firstDay + 7) % 7) + offset * 7;
+  const logged = new Set((starts || []).map((s) => s.start_date));
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(t.getFullYear(), t.getMonth(), first + i);
+    const iso = toISO(d);
+    return { iso, date: d, isToday: iso === today, logged: logged.has(iso), phase: phaseOn(settings, starts, iso, today) };
+  });
 }
 
 // ---- fetch helpers ----

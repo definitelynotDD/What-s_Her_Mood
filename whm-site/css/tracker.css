@@ -63,42 +63,92 @@
 .cycle-phase-pill[data-hue="plum"]  { background: var(--plum-soft);  color: var(--plum-ink); }
 .cycle-phase-pill[data-hue="muted"] { background: var(--cream-2);    color: var(--ink-soft); }
 
-/* ---- cycle ring + phase summary ---- */
+/* ---- today's mood + phase ---- */
 .cycle-body {
-  display: flex; align-items: center; gap: 14px;
+  display: flex; align-items: center; gap: 12px;
 }
-.cycle-ring {
-  position: relative;
-  flex: 0 0 auto;
-  width: 104px; height: 104px;
-}
-.cycle-ring-svg {
-  width: 100%; height: 100%;
-  transform: rotate(-90deg);
-}
-.cycle-ring-center {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-}
-/* the phase's mood emoji, then the day */
 .cycle-mood {
-  margin: 0 0 1px;
-  font-size: 24px; line-height: 1;
+  flex: 0 0 auto;
+  font-size: 40px; line-height: 1;
   animation: popIn .5s cubic-bezier(.3,1.4,.5,1) both;
 }
 .cycle-mood[hidden] { display: none; }
-.cycle-day-num {
+.cycle-day-line {
   margin: 0;
-  font: 600 22px/1 'Fraunces', Georgia, serif;
+  font-size: 12px; font-weight: 700;
+  color: var(--ink-soft);
+  letter-spacing: .04em;
+}
+.cycle-day-line:empty { display: none; }
+
+/* ---- the week, coloured by phase ---- */
+.cycle-card [data-hue="rust"]  { --c: var(--rust);    --c-soft: var(--rust-soft);  --c-ink: var(--rust-ink); }
+.cycle-card [data-hue="teal"]  { --c: var(--teal);    --c-soft: var(--teal-soft);  --c-ink: var(--teal-ink); }
+.cycle-card [data-hue="honey"] { --c: var(--honey);   --c-soft: var(--honey-soft); --c-ink: var(--honey-ink); }
+.cycle-card [data-hue="pri"]   { --c: var(--pri);     --c-soft: var(--pri-soft);   --c-ink: var(--pri-ink); }
+.cycle-card [data-hue="plum"]  { --c: var(--plum);    --c-soft: var(--plum-soft);  --c-ink: var(--plum-ink); }
+.cycle-card [data-hue="muted"] { --c: var(--ink-soft); --c-soft: var(--cream-2);   --c-ink: var(--ink-soft); }
+
+.cycle-week { display: flex; flex-direction: column; gap: 6px; }
+.cycle-week-nav { display: flex; align-items: center; justify-content: space-between; }
+.cycle-week-btn, .cycle-week-label {
+  border: 0; background: none; cursor: pointer;
+  font: 700 12px 'Nunito', system-ui, sans-serif;
   color: var(--pri-ink);
 }
-.cycle-day-of {
-  margin: 0;
-  font-size: 10.5px;
-  color: var(--ink-soft);
-  letter-spacing: .06em;
+.cycle-week-btn {
+  width: 32px; height: 28px;
+  font-size: 20px; line-height: 1;
+  border-radius: 8px;
 }
+@media (hover: hover) { .cycle-week-btn:hover { background: var(--cream-2); } }   /* a tap mustn't leave it shaded */
+.cycle-week-label { padding: 4px 10px; border-radius: 999px; letter-spacing: .04em; }
+.cycle-week-label:not(:disabled) { background: var(--cream-2); }   /* tap to come back */
+.cycle-week-label:disabled { cursor: default; opacity: 1; }
+
+.cycle-week-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+}
+.cw-day { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; }
+.cw-wd { font-size: 11px; font-weight: 700; color: var(--ink-soft); }
+.cw-cell {
+  position: relative;
+  width: 100%; max-width: 42px;
+  aspect-ratio: 1;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 11px;
+  background: var(--c-soft);
+  color: var(--c-ink);
+  font: 700 15px/1 'Nunito', system-ui, sans-serif;
+}
+.cw-day.is-today .cw-wd { color: var(--c-ink); }
+.cw-day.is-today .cw-cell {
+  background: var(--c);
+  color: #fff;
+  box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--c);
+}
+.cw-day.is-logged .cw-cell::after {      /* a logged period start */
+  content: "";
+  position: absolute; bottom: 5px; left: 50%;
+  width: 5px; height: 5px; margin-left: -2.5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.cycle-legend { display: flex; flex-wrap: wrap; gap: 4px 9px; margin-top: 2px; }
+.cycle-legend-item {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; color: var(--ink-soft);
+}
+.cycle-legend-item::before {
+  content: "";
+  width: 9px; height: 9px;
+  border-radius: 3px;
+  background: var(--c);
+}
+
 .cycle-body-text {
   flex: 1;
   display: flex; flex-direction: column; gap: 4px;

@@ -26,6 +26,7 @@ tab's `postgres_changes` listeners the way Realtime would).
 | `profile.test.mjs` | Stage 4 in the real app: her daily question (save, skip, one a day, ask another, phase questions first), editing what he sees, his read-only view with "on days like today", live updates, missing tables | ~15 s |
 | `questions.test.mjs` | Which question comes next, and that the question bank is well formed. Plain Node | <1 s |
 | `celebrate-dates.test.mjs` | Which days celebrate and for how long. Plain Node, no browser | <1 s |
+| `public-files.test.mjs` | `whm-site/` (all of it is downloadable from the live site) holds only app files: no notes, deploy steps or SQL. Plain Node | <1 s |
 | `celebrate.test.mjs` | Special-day banner and fireworks in the real app | ~15 s |
 | `celebrate-clock.test.mjs` | Same, on a fake clock: midnight IST mid-call, the banner leaving at day's end, phones in other time zones | ~30 s |
 

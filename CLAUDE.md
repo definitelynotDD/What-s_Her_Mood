@@ -1,7 +1,7 @@
 # What's Her Mood
 
 The app is `whm-site/` (plain HTML + ES modules, Supabase, WebRTC). Every push
-to `main` deploys it to whm-couple.netlify.app. Read `whm-site/HANDOVER.md`
+to `main` deploys it to whm-couple.netlify.app. Read `docs/HANDOVER.md`
 first; `HANDOVER-2026-10-20.md` has the owner-facing status.
 
 - **Run the tests before pushing to `main`:** `cd tests && npm install && npm test`
@@ -10,3 +10,6 @@ first; `HANDOVER-2026-10-20.md` has the owner-facing status.
 - Never commit `whm-site/config.js` (git-ignored; the build writes it from
   Netlify env vars). Never put a Supabase `service_role` key in the app or Netlify.
 - The repo is public: keep secrets and private details out of code, docs and tests.
+- Everything in `whm-site/` is downloadable from the live site. Only app files
+  go there; notes go in `docs/`, SQL in `supabase/` (`tests/public-files.test.mjs`
+  checks).

@@ -3,7 +3,8 @@
 > **⚠️ Backend updated: this README describes the original Firebase design, but
 > Stages 1 + 2 now run on Supabase** (Postgres + Auth + Realtime). The concepts
 > are the same; only the backend mechanics differ. For the current, accurate
-> setup see **`DEPLOY.md`**, **`HANDOVER.md`**, and **`supabase/schema.sql`**.
+> setup see **`DEPLOY.md`**, **`HANDOVER.md`** (both next to this file in
+> `docs/`), and **`supabase/schema.sql`** at the repo root.
 > Mentions of Firestore / `firestore.rules` / Firebase config below are
 > historical — the app is live at
 > [whm-couple.netlify.app](https://whm-couple.netlify.app).
@@ -109,15 +110,16 @@ just depletes the free quota.
 ## Project structure
 
 ```
-whm-site/
+docs/
+├── README.md               This file
+├── DEPLOY.md               Condensed deploy steps
+└── HANDOVER.md             Project history + design decisions + roadmap
+supabase/
+└── schema.sql              Canonical Postgres schema (already applied)
+whm-site/                   The app — published as-is, so app files only
 ├── index.html              All screens: welcome / signup / signin / paired / hangout
 ├── config.example.js       Template — copy to config.js and fill in
 ├── config.js               YOU CREATE THIS (your real Supabase values)
-├── README.md               This file
-├── DEPLOY.md               Condensed deploy steps
-├── HANDOVER.md             Project history + design decisions + roadmap
-├── supabase/
-│   └── schema.sql          Canonical Postgres schema (already applied)
 ├── css/
 │   ├── shared.css          Fonts + WHM design tokens (sage palette, grain, etc.)
 │   ├── auth.css            Auth-screen-specific layout

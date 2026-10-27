@@ -32,7 +32,12 @@ started as a stretch feature and now works end-to-end.
   `definitelynotdd`, **connected to GitHub: every push to `main` deploys**.
   Its `config.js` is generated at build time from Netlify env vars
   (`scripts/write-config.mjs`, see `DEPLOY.md`). The previous manual-upload
-  project is `whm-couple-old.netlify.app` (`67ba4904-…`), frozen on 8 Aug.
+  project, `whm-couple-old.netlify.app` (`67ba4904-…`, frozen on 8 Aug), is
+  being deleted by the owner (27 Oct): don't count on it for rollback.
+- **Docs:** these notes, `DEPLOY.md` and the original spec (`README.md`) are in
+  `docs/`, the schema in `supabase/` at the repo root. Netlify publishes
+  `whm-site/` as-is, so anything put there is downloadable from the live site;
+  `tests/public-files.test.mjs` fails if a non-app file lands in it.
 - **Frontend:** `index.html` + `css/` + `js/` — one folder, `whm-site/`. Modules:
   `supabase-init.js`, `auth.js`, `pairing.js`, `main.js` (Stage 1 core);
   `cycle.js` + `todos.js` + `tracker.js` (Stage 2); `rtc.js` + `hangout.js`
@@ -56,9 +61,9 @@ canonical, `whm-stage1/` is gone. If old README/HANDOVER copies mention
 1. **Stage 5** — a recommendation card for him that draws on her Stage 4
    answers and today's phase. Keep any LLM key server-side (a Supabase Edge
    Function secret), never in `config.js`: the site and repo are public.
-2. If the in-call readout says "via relay" and voice is choppy: get a
-   dedicated TURN account (Metered free tier, or Twilio / Cloudflare) and put
-   its credentials URL in `config.webrtc.iceServersUrl`. No code change needed.
+2. ~~Dedicated TURN account.~~ The owner decided against it (27 Oct); calls
+   keep the shared free relay in `WHM_ICE_SERVERS`. The `iceServersUrl` hook
+   stays in the code in case that changes. No code change needed to add one.
 
 ---
 

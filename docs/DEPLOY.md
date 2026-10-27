@@ -34,7 +34,11 @@ the build fails on purpose and the previous deploy stays live.
 
 (Until 20 Oct 2026 the live address belonged to a manual-upload project; that
 one is now `whm-couple-old.netlify.app`, site id
-`67ba4904-c92b-4016-92c6-c4b019042b9a`, frozen on the 8 Aug build.)
+`67ba4904-c92b-4016-92c6-c4b019042b9a`, frozen on the 8 Aug build. The owner
+is deleting it, 27 Oct.)
+
+Only `whm-site/` is published. These docs live in `docs/` and the schema in
+`supabase/` so they aren't downloadable from the live site.
 
 Normally you don't deploy by hand — merge to `main`. Fallbacks:
 

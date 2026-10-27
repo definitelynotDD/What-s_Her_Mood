@@ -355,6 +355,30 @@ the day's question). Pair-up is shown only at the moment two accounts link,
 so "you're paired with … ♡" gets its beat, and on unpair. `main.js`
 `renderUserRow` tells the two apart with `rowSeen` (reset on every sign-in).
 
+## Tabs mid-call + the welcome page (27 Oct)
+
+**The call as a bubble.** The tabs stay up in the cozy room (the header
+shrinks to just the tabs: `.app-header.is-call`). Opening "today" or "pair up"
+mid-call no longer means leaving: `showScreen("app")` keeps `#screen-hangout`
+showing with `.is-mini` (`setHangoutMini` in `hangout.js`), which is CSS only —
+the room becomes a 112 px bubble of the partner's face, bottom-right. The video
+elements are never removed or hidden from the page, so voice, chat, hearts and
+slaps carry on. A transparent `#hg-mini` button covers the bubble (a tap comes
+back instead of sending hearts); their chat messages count up on it. The
+"start a hangout →" button reads "back to the call →" while a call is up, and
+"cozy room" or the bubble return to the same call. Coming back, `setHangoutMini`
+calls `play()` on any video a phone paused while it wasn't drawn (muted
+autoplay video, i.e. our own preview). "leave" is still the only thing that
+ends the call. `hangoutActive()` counts a call that's still opening (camera
+prompt up), so switching tabs then doesn't strand it hidden.
+
+**Welcome page.** `.wrap` used to be `min-height: 100dvh` *below* the header,
+so every page was a header taller than the phone and short cards sat half a
+screen down (on a small phone, "I already have one" was off the bottom). Now
+`body` is a flex column and `.wrap` takes what the header leaves. The header is
+hidden on the welcome page, whose card already carries the title.
+`call-bubble.test.mjs` covers both.
+
 ## Data model (built so far)
 
 ```

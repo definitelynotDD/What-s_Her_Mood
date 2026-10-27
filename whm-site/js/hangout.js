@@ -88,6 +88,7 @@ function addChat(text, who, name) {
   row.appendChild(b); row.appendChild(t);
   log.appendChild(row);
   log.scrollTop = log.scrollHeight;
+  if (who !== "me" && isMini()) setUnread(unread + 1);
 }
 
 function playInto(el, stream) {
@@ -795,6 +796,32 @@ async function stopScreen() {
   setScreenButton(false);
 }
 
+// ---- minimized: the call as a bubble over the app ----
+// Open another tab mid-call and main.js shrinks the room to a bubble instead of
+// closing it. Only CSS changes (.is-mini): the video elements stay in the page
+// and keep playing, so voice, chat and hearts carry on. Tap it to come back.
+let unread = 0;
+const isMini = () => { const s = $("screen-hangout"); return !!(s && s.classList.contains("is-mini")); };
+function setUnread(n) {
+  unread = n;
+  const b = $("hg-mini-unread");
+  if (b) { b.textContent = String(n); b.hidden = n === 0; }
+}
+export function hangoutActive() { return !!(room || opening); }
+export function setHangoutMini(on) {
+  const sec = $("screen-hangout");
+  if (!sec || isMini() === !!on) return;
+  sec.classList.toggle("is-mini", !!on);
+  if (on) return;
+  setUnread(0);
+  // Phones pause muted videos they stop drawing (our own preview is one);
+  // start them again now that they're drawn.
+  ["hg-local", "hg-remote", "hg-screencast"].forEach((id) => {
+    const v = $(id);
+    if (v && v.srcObject && v.paused) { const p = v.play(); if (p && p.catch) p.catch(() => {}); }
+  });
+}
+
 export function closeHangout() {
   opening = 0; // a pending openHangout() will see this and bail
   if (!room) return;
@@ -832,5 +859,6 @@ export function closeHangout() {
   const micWrap = $("hg-mic-pick-wrap"), hint = $("hg-bt-hint");
   if (micWrap) micWrap.hidden = true;
   if (hint) hint.hidden = true;
+  setHangoutMini(false);
   if (typeof exit === "function") exit();
 }

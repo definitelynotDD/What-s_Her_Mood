@@ -7,6 +7,7 @@
   width: 100%;
   max-width: 760px;
   margin: 0 auto;
+  align-self: start;                /* right under the tabs, not centred */
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -501,3 +502,72 @@
   .hg-with { font-size: 15px; }
   .hg-ctl { padding: 9px 13px; font-size: 13px; }
 }
+
+/* ---- minimized: the call as a bubble over the other tabs ----
+   main.js adds .is-mini when you open "today" or "pair up" mid-call. The
+   videos stay in the page (so they keep playing); only their box changes. */
+.hg-mini-open { display: none; }
+.hg.is-mini {
+  position: fixed;
+  right: 14px;
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  z-index: 40;
+  width: 112px;
+  max-width: none;
+  margin: 0;
+  gap: 0;
+  animation: popIn .35s cubic-bezier(.3, .7, .4, 1.4);
+}
+.hg.is-mini .hg-head,
+.hg.is-mini .hg-controls,
+.hg.is-mini .hg-bt-hint,
+.hg.is-mini .hg-chat,
+.hg.is-mini .hg-local-wrap,
+.hg.is-mini .hg-with,
+.hg.is-mini .hg-twinkle,
+.hg.is-mini .hg-stage .hg-screencast { display: none; }
+.hg.is-mini .hg-stage,
+.hg.is-mini .hg-stage.sharing {
+  display: block;
+  aspect-ratio: 3 / 4;
+  height: auto;
+  padding: 0;
+  border: 2px solid var(--paper);
+  border-radius: 18px;
+  box-shadow: 0 12px 30px rgba(42, 36, 24, 0.35);
+}
+.hg.is-mini .hg-stage.sharing .hg-remote-wrap { position: absolute; inset: 0; border-radius: 0; }
+.hg.is-mini .hg-mini-open {
+  display: flex;
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 0 9px;
+  border: 0;
+  border-radius: 18px;
+  background: transparent;
+  cursor: pointer;
+}
+.hg-mini-open:focus-visible { outline: 3px solid var(--pri); outline-offset: 2px; }
+.hg-mini-label {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(28, 26, 20, 0.62);
+  color: #F5EEDD;
+  font: 700 11.5px 'Nunito', system-ui, sans-serif;
+  white-space: nowrap;
+}
+.hg-mini-unread {
+  position: absolute;
+  top: -7px; right: -7px;
+  min-width: 22px; height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--rust);
+  color: #fff;
+  font: 700 12px/22px 'Nunito', system-ui, sans-serif;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+.hg-mini-unread[hidden] { display: none; }

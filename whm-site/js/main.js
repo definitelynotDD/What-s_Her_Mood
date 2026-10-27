@@ -3,7 +3,7 @@ import {
   signUp, signIn, signOutUser, watchAuth, getUserRow, friendlyAuthError,
 } from "./auth.js";
 import { watchMyUserRow, claimPartnerCode } from "./pairing.js";
-import { openHangout, closeHangout } from "./hangout.js";
+import { openHangout, closeHangout, hangoutActive, setHangoutMini } from "./hangout.js";
 import { mountTracker, unmountTracker } from "./tracker.js";
 import { mountMascot } from "./mascot.js";
 import { startCelebrations, stopCelebrations } from "./celebrate.js";
@@ -17,17 +17,33 @@ let currentScreen = "loading";
 let activeSubview = "pair";                    // 'pair' | 'today'  (only meaningful inside #screen-app)
 function showScreen(name) {
   currentScreen = name;
+  // A call stays up while you look at another tab: the room shrinks to a
+  // bubble over the app instead of closing (see setHangoutMini).
+  const mini = name === "app" && hangoutActive();
   SCREENS.forEach((s) => {
     const el = document.getElementById("screen-" + s);
-    if (el) el.hidden = (s !== name);
+    if (el) el.hidden = !(s === name || (s === "hangout" && mini));
   });
-  // The global banner + tabs live outside .wrap. Banner hides on hangout
-  // (the video stage is its own headline); tabs are gated to signed-in + paired
-  // and only make sense while the app screen is showing.
+  setHangoutMini(mini);
+  document.body.classList.toggle("has-mini-call", mini);
+  // The global banner + tabs live outside .wrap. The welcome card is its own
+  // title, so no header there; mid-call it shrinks to just the tabs (the video
+  // stage is its own headline). Tabs are gated to signed-in + paired.
   const header = document.getElementById("app-header");
   const tabs = document.getElementById("app-tabs");
-  if (header) header.hidden = (name === "hangout" || name === "loading");
-  if (tabs) tabs.hidden = !(name === "app" && !!currentPairing);
+  if (header) {
+    header.hidden = (name === "loading" || name === "welcome");
+    header.classList.toggle("is-call", name === "hangout");
+  }
+  if (tabs) tabs.hidden = !((name === "app" || name === "hangout") && !!currentPairing);
+  markTab(name === "hangout" ? "hangout" : activeSubview);
+  const start = document.getElementById("start-hangout");
+  if (start) start.textContent = hangoutActive() ? "back to the call →" : "start a hangout →";
+}
+function markTab(name) {
+  document.querySelectorAll(".app-tab").forEach((b) => {
+    b.classList.toggle("is-on", b.dataset.tab === name);
+  });
 }
 function setSubview(name) {
   activeSubview = name;
@@ -35,9 +51,13 @@ function setSubview(name) {
   const today = document.getElementById("subview-today");
   if (pair) pair.hidden = (name !== "pair");
   if (today) today.hidden = (name !== "today");
-  document.querySelectorAll(".app-tab").forEach((b) => {
-    b.classList.toggle("is-on", b.dataset.tab === name);
-  });
+  markTab(name);
+}
+// Into the cozy room — or back to the call already running there.
+function enterRoom() {
+  if (!currentPairing) return;
+  showScreen("hangout");
+  openHangout({ ...currentPairing, onExit: () => showScreen("app") });   // no-op if already open
 }
 function setMsg(el, msg, kind) {
   if (!el) return;
@@ -131,18 +151,16 @@ mountMascot($("#welcome-mascot"), { scale: 1 });
 
 // Tab bar (shown only when signed-in AND paired — see showScreen). "pair" and
 // "today" flip in-place sub-views; "hangout" jumps to the full-screen video.
+// Mid-call, "pair"/"today" leave the call running as a bubble.
 document.querySelectorAll(".app-tab").forEach((btn) => {
   btn.addEventListener("click", () => {
     const tab = btn.dataset.tab;
-    if (tab === "hangout") {
-      if (!currentPairing) return;
-      showScreen("hangout");
-      openHangout({ ...currentPairing, onExit: () => { showScreen("app"); setSubview(activeSubview); } });
-      return;
-    }
+    if (tab === "hangout") { enterRoom(); return; }
+    if (currentScreen === "hangout") showScreen("app");
     setSubview(tab);
   });
 });
+$("#hg-mini").addEventListener("click", enterRoom);
 
 $("#go-signup").addEventListener("click", () => { setMsg($("#signup-error"), ""); showScreen("signup"); });
 $("#go-signin").addEventListener("click", () => { setMsg($("#signin-error"), ""); showScreen("signin"); });
@@ -234,11 +252,7 @@ $("#signout-btn").addEventListener("click", async () => {
   try { await signOutUser(); } catch (_) {}
 });
 
-$("#start-hangout").addEventListener("click", () => {
-  if (!currentPairing) return;
-  showScreen("hangout");
-  openHangout({ ...currentPairing, onExit: () => showScreen("app") });
-});
+$("#start-hangout").addEventListener("click", enterRoom);
 
 // Leave: wired here (not inside openHangout) so it always works — a failed
 // getUserMedia in openHangout used to return before the button was hooked up,

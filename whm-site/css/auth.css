@@ -4,14 +4,20 @@
    Leans on the tokens + fonts in shared.css. Sage primary, cream paper.
    ============================================================ */
 
+/* The header and .wrap share one screen: .wrap gets whatever height the
+   header leaves. (.wrap used to be a full screen tall by itself, so with the
+   header on top a short page sat half a screen down, buttons off the bottom.) */
+body { display: flex; flex-direction: column; }
 .wrap {
   position: relative;
   z-index: 1;            /* above the body::before grain */
-  min-height: 100dvh;
+  flex: 1 0 auto;
   display: grid;
   place-items: center;
   padding: 24px 18px calc(24px + env(safe-area-inset-bottom));
 }
+/* mid-call on another tab: room under the call bubble to scroll past it */
+body.has-mini-call .wrap { padding-bottom: calc(190px + env(safe-area-inset-bottom)); }
 
 /* ---- global app header (kicker + big title + tabs) ---- */
 .app-header {
@@ -25,6 +31,11 @@
   text-align: center;
 }
 .app-header[hidden] { display: none; }
+/* mid-call: just the tabs — the video stage is its own headline */
+.app-header.is-call { padding-top: 16px; }
+.app-header.is-call .app-header-kicker,
+.app-header.is-call .app-title,
+.app-header.is-call .cel-banner { display: none; }
 .app-header-kicker {
   margin: 0;
   font-size: 22px;

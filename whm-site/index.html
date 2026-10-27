@@ -207,6 +207,12 @@
           <button type="submit" class="btn-primary hg-send">send</button>
         </form>
       </div>
+      <!-- Mid-call on another tab the room shrinks to a bubble (.is-mini);
+           this covers it, so a tap comes back instead of sending hearts. -->
+      <button id="hg-mini" type="button" class="hg-mini-open" aria-label="back to the call">
+        <span class="hg-mini-label">back to call</span>
+        <span id="hg-mini-unread" class="hg-mini-unread" title="new messages" hidden>0</span>
+      </button>
     </section>
 
   </main>

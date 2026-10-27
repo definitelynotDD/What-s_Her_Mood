@@ -6,6 +6,9 @@
 // blink). Reduced-motion viewers get the still pose via the media query
 // in shared.css.
 //
+// Moods: set data-mood on the returned element ("sleepy", "happy", "glowing",
+// "calm", "tender") to change the face. No mood = the everyday smile.
+//
 // Usage:
 //   mountMascot(document.querySelector("#some-host"), { scale: 0.55 });
 // Idempotent — clears the host and re-stamps the DOM tree each call.
@@ -19,6 +22,8 @@ const HTML = `
   <div class="mascot-cheek mascot-cheek-r"></div>
   <div class="mascot-eye mascot-eye-l"></div>
   <div class="mascot-eye mascot-eye-r"></div>
+  <div class="mascot-brow mascot-brow-l"></div>
+  <div class="mascot-brow mascot-brow-r"></div>
   <div class="mascot-mouth"></div>
 </div>`;
 

@@ -379,6 +379,20 @@ screen down (on a small phone, "I already have one" was off the bottom). Now
 hidden on the welcome page, whose card already carries the title.
 `call-bubble.test.mjs` covers both.
 
+## Mood on the today tab (27 Oct)
+
+Each phase in `cycle.js` `PHASES` now carries an `emoji` (shown at the top of
+the cycle ring, above the day) and a `mood` for the mascot ("our apple"):
+menstrual 😴 sleepy, follicular 😊 happy, ovulation 😄 glowing, luteal 😌 calm,
+pms 🥺 tender. No data: no emoji, everyday face. `tracker.js` sets
+`data-mood` on the header mascot from the same `watchCycle` push as the ring, so
+both phones change together and live. The faces are CSS only
+(`mascot.css`, `.mascot[data-mood=…]`): closed or arched eyes, an "o" or open
+mouth, worried brows (`.mascot-brow`, hidden unless tender), and a drifting
+"z" or a sparkle on `::after`. Mascots elsewhere (welcome, pair up) have no
+`data-mood` and keep the everyday smile. To change an emoji, edit its line in
+`PHASES`. `mood.test.mjs` covers it.
+
 ## Data model (built so far)
 
 ```

@@ -67,3 +67,108 @@
 
 /* mascot slot helpers (where main.js / tracker.js drop it) */
 .mascot-slot { display: inline-flex; align-items: center; justify-content: center; }
+
+/* ---- moods (data-mood, set from the cycle phase in tracker.js) ----
+   Only the face changes. Unset / "happy" = the everyday smile above. */
+.mascot-brow { display: none; }
+.mascot::after {                     /* a "z" or a sparkle, per mood */
+  position: absolute;
+  font: 700 calc(26px * var(--mascot-scale, 1))/1 'Caveat', cursive;
+}
+
+/* closed eyes: "‿ ‿" (calm), "– –" (sleepy) — no blink */
+.mascot[data-mood="calm"] .mascot-eye,
+.mascot[data-mood="sleepy"] .mascot-eye {
+  top: 49%;
+  width: 10%; height: 5%;
+  background: none;
+  border-bottom: 2.5px solid var(--pri-ink);
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  animation: none;
+}
+.mascot[data-mood="calm"] .mascot-eye-l,
+.mascot[data-mood="sleepy"] .mascot-eye-l,
+.mascot[data-mood="glowing"] .mascot-eye-l,
+.mascot[data-mood="tender"] .mascot-eye-l { left: 33.5%; }
+.mascot[data-mood="calm"] .mascot-eye-r,
+.mascot[data-mood="sleepy"] .mascot-eye-r,
+.mascot[data-mood="glowing"] .mascot-eye-r,
+.mascot[data-mood="tender"] .mascot-eye-r { right: 33.5%; }
+.mascot[data-mood="calm"],
+.mascot[data-mood="sleepy"] { animation-duration: 6s; }      /* slower sway */
+
+/* 😴 sleepy: flat eyes, little "o" mouth, a drifting z */
+.mascot[data-mood="sleepy"] .mascot-eye { top: 50%; height: 0; border-radius: 2px; }
+.mascot[data-mood="sleepy"] .mascot-mouth {
+  top: 64%;
+  width: 7%; height: 7%;
+  margin-left: -3.5%;
+  border: 2.5px solid var(--pri-ink);
+  border-radius: 50%;
+}
+.mascot[data-mood="sleepy"]::after {
+  content: "z";
+  right: 4%; top: 10%;
+  color: var(--ink-soft);
+  animation: mascotZ 2.8s ease-in-out infinite;
+}
+
+/* 😄 glowing: "^ ^" eyes, open grin, rosier cheeks, a sparkle */
+.mascot[data-mood="glowing"] .mascot-eye {
+  top: 46%;
+  width: 10%; height: 6%;
+  background: none;
+  border-top: 2.5px solid var(--pri-ink);
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  animation: none;
+}
+.mascot[data-mood="glowing"] .mascot-mouth {
+  top: 62%;
+  width: 16%; height: 9%;
+  margin-left: -8%;
+  border: 0;
+  background: var(--pri-ink);
+  border-radius: 0 0 40px 40px;
+}
+.mascot[data-mood="glowing"] .mascot-cheek { opacity: .8; }
+.mascot[data-mood="glowing"]::after {
+  content: "✦";
+  right: 2%; top: 12%;
+  color: var(--honey);
+  animation: twinkle 2.4s ease-in-out infinite;
+}
+
+/* 😌 calm: closed eyes (above), a softer smile */
+.mascot[data-mood="calm"] .mascot-mouth { width: 10%; margin-left: -5%; }
+
+/* 🥺 tender: big shiny eyes, worried brows, a small wobble of a mouth */
+.mascot[data-mood="tender"] .mascot-eye {
+  top: 44%;
+  width: 10%; height: 13%;
+  background: radial-gradient(circle at 38% 30%, #fff 0 20%, var(--pri-ink) 24%);
+}
+.mascot[data-mood="tender"] .mascot-brow {
+  display: block;
+  position: absolute;
+  top: 37%;
+  width: 11%; height: 0;
+  border-top: 2.5px solid var(--pri-ink);
+  border-radius: 2px;
+}
+.mascot[data-mood="tender"] .mascot-brow-l { left: 33%;  transform: rotate(-16deg); }
+.mascot[data-mood="tender"] .mascot-brow-r { right: 33%; transform: rotate(16deg); }
+.mascot[data-mood="tender"] .mascot-mouth {
+  top: 67%;
+  width: 9%; height: 4%;
+  margin-left: -4.5%;
+  border-bottom: 0;
+  border-top: 2.5px solid var(--pri-ink);
+  border-radius: 20px 20px 0 0;
+}
+.mascot[data-mood="tender"] .mascot-cheek { opacity: .85; }
+
+@keyframes mascotZ {
+  0%   { transform: translate(0, 4px);   opacity: 0; }
+  30%  { opacity: 1; }
+  100% { transform: translate(6px, -10px); opacity: 0; }
+}

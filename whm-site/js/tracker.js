@@ -52,7 +52,7 @@ export function mountTracker({ myUid, myRole, herUid, herName, partnerName }) {
   headWrap.appendChild(mascotSlot);
   headWrap.appendChild(headText);
   host.appendChild(headWrap);
-  mountMascot(mascotSlot, { scale: 0.5 });
+  const mascot = mountMascot(mascotSlot, { scale: 0.5 });
 
   const cycleCard = renderCycleCard({ iAmHer, herName });
   const wiseCard  = renderWiseCard({ iAmHer, herName });
@@ -72,6 +72,7 @@ export function mountTracker({ myUid, myRole, herUid, herName, partnerName }) {
     cycleCard.update({ settings, starts });
     wiseCard.update({ settings, starts });
     const phase = currentPhase(settings, starts);
+    if (mascot) mascot.dataset.mood = phase.mood;   // the apple wears the phase's mood
     if (questionCard) questionCard.setPhase(phase.key);
     aboutCard.setPhase(phase);
   });
@@ -118,10 +119,12 @@ function renderCycleCard({ iAmHer, herName }) {
               stroke-dasharray="264" stroke-dashoffset="264"></circle>
     </svg>
     <div class="cycle-ring-center">
+      <p class="cycle-mood"></p>
       <p class="cycle-day-num serif">—</p>
       <p class="cycle-day-of muted">of —</p>
     </div>`;
   const ringFill = ringWrap.querySelector(".cycle-ring-fill");
+  const ringMood = ringWrap.querySelector(".cycle-mood");
   const ringDayNum = ringWrap.querySelector(".cycle-day-num");
   const ringDayOf  = ringWrap.querySelector(".cycle-day-of");
 
@@ -200,6 +203,9 @@ function renderCycleCard({ iAmHer, herName }) {
       // 264 * (1 - fraction).
       const CIRC = 264;
       ringFill.setAttribute("stroke", ringStroke(p.hue));
+      ringMood.textContent = p.emoji;
+      ringMood.hidden = !p.emoji;
+      ringMood.title = p.emoji ? p.mood : "";
       if (p.day == null) {
         ringDayNum.textContent = "—";
         ringDayOf.textContent  = "log a start";

@@ -15,13 +15,15 @@ import { keepSubscribed, onlyWhenChanged } from "./realtime.js";
 
 export const DEFAULTS = { cycleLength: 28, periodLength: 5 };
 
+// `emoji` is the phase's mood at a glance (centre of the ring); `mood` picks the
+// mascot's face to match (mascot.css, .mascot[data-mood]).
 export const PHASES = {
-  menstrual:  { key: "menstrual",  label: "menstrual",  hue: "rust",   note: "rest + comfort" },
-  follicular: { key: "follicular", label: "follicular", hue: "teal",   note: "energy climbs" },
-  ovulation:  { key: "ovulation",  label: "ovulating",  hue: "honey",  note: "peak energy" },
-  luteal:     { key: "luteal",     label: "luteal",     hue: "pri",    note: "winding down" },
-  pms:        { key: "pms",        label: "pms",        hue: "plum",   note: "extra kindness helps" },
-  unknown:    { key: "unknown",    label: "no data yet", hue: "muted", note: "log a period start to begin" },
+  menstrual:  { key: "menstrual",  label: "menstrual",  hue: "rust",   note: "rest + comfort",       emoji: "😴", mood: "sleepy" },
+  follicular: { key: "follicular", label: "follicular", hue: "teal",   note: "energy climbs",        emoji: "😊", mood: "happy" },
+  ovulation:  { key: "ovulation",  label: "ovulating",  hue: "honey",  note: "peak energy",          emoji: "😄", mood: "glowing" },
+  luteal:     { key: "luteal",     label: "luteal",     hue: "pri",    note: "winding down",         emoji: "😌", mood: "calm" },
+  pms:        { key: "pms",        label: "pms",        hue: "plum",   note: "extra kindness helps", emoji: "🥺", mood: "tender" },
+  unknown:    { key: "unknown",    label: "no data yet", hue: "muted", note: "log a period start to begin", emoji: "", mood: "happy" },
 };
 
 // ---- date helpers (local-time, no libraries) ----
